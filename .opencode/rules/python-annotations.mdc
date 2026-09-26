@@ -1,0 +1,15 @@
+---
+description: Require type annotations on all project Python scripts
+globs: scripts/**/*.py
+alwaysApply: false
+---
+
+# Python type annotations
+
+Every project Python function, method, and typed public value must have annotations.
+
+- Annotate all parameters and return types. Use `-> None` for functions that return nothing.
+- Annotate module-level constants and locals when the type is not obvious from the right-hand side.
+- Do not use bare `Any` to skip typing. Prefer `from __future__ import annotations`.
+- Check with `.venv/bin/mypy` before committing. Do not add untyped project scripts.
+- This applies to project Python (`scripts/`, and any new project modules). Not vendor code under `.opencode/skills/`.

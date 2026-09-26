@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [
+      {
+        "command": ".opencode/hooks/pre-commit-mypy.py",
+        "matcher": "git\\s+commit",
+        "failClosed": true,
+        "timeout": 180
+      }
+    ]
+  }
+}
