@@ -1,0 +1,16 @@
+---
+description: Run Python inside .venv, use trunk-based development, and bump the version with bump2version on every change that lands
+alwaysApply: true
+---
+
+# Development environment and versioning
+
+- **Every Python script in this project must run inside `.venv`.** Always invoke it as `.venv/bin/python <script>` (or activate `.venv` first). Never use the system interpreter: no bare `python`, `python3`, `pip`, or `mypy`.
+- `.venv` is provisioned by the project scripts. To create or repair it, run `python3 -c "import sys; sys.path.insert(0,'scripts'); from project_env import ensure_venv, repo_root; print(ensure_venv(repo_root()))"`, or `.venv/bin/python -m pip install -r requirements-dev.txt`.
+- `requirements-dev.txt` is the single source of truth for development dependencies. `scripts/project_env.py` holds `REQUIRED_MODULES`; every module listed there must be importable from `.venv`.
+- **Development is trunk-based.** `main` is the single trunk and is always releasable. Work happens on short-lived branches cut from the latest `origin/HEAD` (never stacked on another feature branch), merged through a pull request, then deleted. Never force-push, never rewrite history, never discard uncommitted work, never update git config. See `.opencode/commands/shared-git.md`.
+- **Semantic Versioning (`MAJOR.MINOR.PATCH`), and every change that reaches `main` must bump the version** — no exceptions, including fixes and docs-only edits. Choose the level by intent: `patch` for bug fixes, corrections, wording, and behaviour-preserving refactors; `minor` for new features, new deliverables, new sections, and architecture decisions that add capability; `major` for breaking changes such as removed or renamed public interfaces, changed output formats, or a changed config schema.
+- Run `.venv/bin/python scripts/bumpversion.py patch|minor|major`. Never call the `bumpversion` console script, `python -m bumpversion`, or `bumpversion` directly, and never edit version numbers by hand.
+- Project Python must be fully type-annotated and pass `.venv/bin/mypy`.
+- Keep `version \`x.y.z\`.` in `README.md`. `.bumpversion.cfg` replaces that exact string in README and `version.txt`.
+- Keep `current_version` in `.bumpversion.cfg` in sync with `version.txt`.
