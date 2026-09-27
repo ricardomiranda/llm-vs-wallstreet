@@ -2,4 +2,6 @@ bump2version
 markdown-it-py
 mypy
 PyYAML
-
+pandas
+pandas-stubs
+streamlit
