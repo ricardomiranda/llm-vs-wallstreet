@@ -1,6 +1,6 @@
 ---
 description: Inspect uncommitted work, split into slices, publish short-lived branches, bump version, commit, and push
-model: opencode/qwen3.8-max
+model: github-copilot/gpt-6-luna
 ---
 
 # Commit work

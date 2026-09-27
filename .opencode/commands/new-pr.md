@@ -1,6 +1,6 @@
 ---
-description: Create a GitHub pull request from a short-lived branch, suggesting a title and description (runs on a free opencode model)
-model: opencode/muse-spark-1.3-contributor-free
+description: Create a GitHub pull request from a short-lived branch, suggesting a title and description
+model: github-copilot/gpt-6-luna
 ---
 
 # New pull request
@@ -13,7 +13,6 @@ Shared rules, SSH retry, fast-forward, and merged-branch cleanup: [shared-git.md
 
 ## Extra hard rules
 
-- Run this command on a **free** opencode model. The `model` field in the frontmatter pins one; keep it on a model whose id ends in `-free` (see `opencode models`). Do not switch to a paid model.
 - Do not open a PR from the default branch. Use `/commit-work` first if the work is still uncommitted.
 - Use `gh pr create` for all GitHub PR work. Do not invent a PR URL.
 - Base the PR on `<default-branch>`.
