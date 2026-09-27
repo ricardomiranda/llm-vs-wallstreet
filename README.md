@@ -1,6 +1,6 @@
 # llm-vs-wallstreet
 
-version `0.8.0`.
+version `0.9.0`.
 
 This project helps me manage my securities portfolio. It works from real
 brokerage data and uses large language models to answer one question above
@@ -31,6 +31,23 @@ Brokerage statements live in `references/`:
 
 Statements are personal financial records. Do not commit anything that adds
 identifying information beyond what is already tracked.
+
+Timestamped DeGiro (`YYYYMMDD.degiro.xlsx`) and Interactive Brokers
+(`YYYYMMDD.interactive-brokers.csv`) statements can be imported into a local
+SQLite portfolio database:
+
+```bash
+.venv/bin/python scripts/import_portfolio.py
+```
+
+The importer stores a separate snapshot for each statement in
+`output/portfolio.sqlite3`; it preserves older statement dates and refreshes a
+snapshot if its source file is updated. The generated database is ignored by
+Git because it contains derived personal financial data. It records account
+totals, positions, cash balances, and available FX rates. Position-limit rules
+can be added to `position_limits`; `position_limit_alerts` exposes limit
+breaches for dashboard use. Statement dates come from the filename (and are
+checked against the IB statement period when available).
 
 ## Status
 
