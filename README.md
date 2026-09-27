@@ -1,6 +1,6 @@
 # llm-vs-wallstreet
 
-version `0.10.0`.
+version `0.11.0`.
 
 This project helps me manage my securities portfolio. It works from real
 brokerage data and uses large language models to answer one question above
@@ -51,6 +51,21 @@ totals, positions, cash balances, and available FX rates. Position-limit rules
 can be added to `position_limits`; `position_limit_alerts` exposes limit
 breaches for dashboard use. Statement dates come from the filename (and are
 checked against the IB statement period when available).
+
+Delayed daily market prices and EUR valuations can be refreshed with
+`/update-prices` in OpenCode or directly:
+
+```bash
+.venv/bin/python scripts/update_prices.py
+```
+
+The updater stores the original quoted price and currency, price date, EUR
+conversion, FX rate and date, and provider mapping in local price history.
+Yahoo Finance provides best-effort daily closes and Frankfurter provides daily
+ECB reference rates. These are not live quotes; unmatched securities are
+reported rather than guessed. `current_security_values_eur` and
+`current_portfolio_value_eur` provide EUR-converted position and portfolio
+values from the latest stored prices.
 
 ## Status
 
