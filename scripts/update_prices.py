@@ -63,6 +63,16 @@ CREATE TABLE IF NOT EXISTS fx_rate_history (
     fetched_at TEXT NOT NULL,
     PRIMARY KEY(currency, rate_date, provider)
 );
+CREATE TABLE IF NOT EXISTS portfolio_settings (
+    singleton_id INTEGER PRIMARY KEY CHECK (singleton_id = 1),
+    max_single_security_weight_pct REAL NOT NULL DEFAULT 10.0
+        CHECK (max_single_security_weight_pct > 0
+               AND max_single_security_weight_pct <= 100)
+);
+INSERT OR IGNORE INTO portfolio_settings(
+    singleton_id, max_single_security_weight_pct
+) VALUES (1, 10.0);
+DROP VIEW IF EXISTS partial_sell_recommendations;
 DROP VIEW IF EXISTS latest_security_prices;
 CREATE VIEW latest_security_prices AS
 SELECT p.*
@@ -149,16 +159,65 @@ WITH current_snapshots AS (
     FROM cash_balances AS b
     JOIN current_snapshots AS s ON s.id = b.snapshot_id
     WHERE s.snapshot_rank = 1
+), cash_total AS (
+    SELECT SUM(amount * eur_per_unit) AS cash_value_eur,
+           SUM(CASE WHEN amount != 0 AND eur_per_unit IS NULL THEN 1 ELSE 0 END)
+               AS unconverted_cash_count
+    FROM current_cash
 )
 SELECT
     (SELECT priced_value_eur FROM position_total) AS priced_positions_eur,
-    (SELECT SUM(amount * eur_per_unit) FROM current_cash) AS cash_value_eur,
+    (SELECT cash_value_eur FROM cash_total) AS cash_value_eur,
     (SELECT priced_value_eur FROM position_total)
-      + (SELECT SUM(amount * eur_per_unit) FROM current_cash)
+      + (SELECT cash_value_eur FROM cash_total)
         AS priced_portfolio_value_eur,
     (SELECT priced_count FROM position_total) AS priced_security_count,
     (SELECT unpriced_count FROM position_total) AS unpriced_security_count,
-    (SELECT MAX(price_date) FROM latest_security_prices) AS latest_price_date;
+    (SELECT MAX(price_date) FROM latest_security_prices) AS latest_price_date,
+    (SELECT unconverted_cash_count FROM cash_total) AS unconverted_cash_count;
+DROP VIEW IF EXISTS partial_sell_recommendations;
+CREATE VIEW partial_sell_recommendations AS
+WITH portfolio AS (
+    SELECT * FROM current_portfolio_value_eur
+), thresholds AS (
+    SELECT max_single_security_weight_pct
+    FROM portfolio_settings
+    WHERE singleton_id = 1
+), exposures AS (
+    SELECT
+        p.*,
+        portfolio.priced_portfolio_value_eur AS portfolio_value_eur,
+        COALESCE(l.max_portfolio_pct, thresholds.max_single_security_weight_pct)
+            AS max_weight_pct,
+        100.0 * p.position_value_eur
+            / NULLIF(portfolio.priced_portfolio_value_eur, 0) AS current_weight_pct
+    FROM current_security_values_eur AS p
+    CROSS JOIN portfolio
+    CROSS JOIN thresholds
+    LEFT JOIN position_limits AS l ON l.security_id = p.security_id
+    WHERE portfolio.unpriced_security_count = 0
+      AND portfolio.unconverted_cash_count = 0
+      AND portfolio.priced_portfolio_value_eur > 0
+)
+SELECT
+    security_id,
+    symbol,
+    description,
+    quantity AS current_quantity,
+    price_date,
+    price_eur,
+    position_value_eur,
+    portfolio_value_eur,
+    current_weight_pct,
+    max_weight_pct AS target_weight_pct,
+    position_value_eur
+        - portfolio_value_eur * max_weight_pct / 100.0 AS recommended_sell_value_eur,
+    (position_value_eur
+        - portfolio_value_eur * max_weight_pct / 100.0) / price_eur
+        AS recommended_sell_quantity
+FROM exposures
+WHERE current_weight_pct > max_weight_pct
+  AND price_eur > 0;
 """
 
 
