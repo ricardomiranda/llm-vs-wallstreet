@@ -1,6 +1,6 @@
 # llm-vs-wallstreet
 
-version `0.13.0`.
+version `0.14.0`.
 
 This project helps me manage my securities portfolio. It works from real
 brokerage data and uses large language models to answer one question above
@@ -76,6 +76,20 @@ price or a cash balance lacks EUR conversion, so portfolio weights are not
 calculated from incomplete coverage. Sale estimates assume proceeds remain as
 portfolio cash and exclude taxes, fees, and price movement; no orders are
 placed.
+
+## Portfolio dashboard
+
+Launch the local Streamlit dashboard with:
+
+```bash
+.venv/bin/python -m streamlit run scripts/dashboard.py
+```
+
+The dashboard reads `output/portfolio.sqlite3` in read-only mode and shows
+portfolio valuation and price coverage, largest positions, searchable holdings,
+missing prices, configured concentration limits, and snapshot history. It runs
+locally; it does not upload portfolio data. Values use stored delayed daily
+prices and are not live quotes.
 
 Change the default cap in the local database with:
 

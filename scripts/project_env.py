@@ -7,7 +7,9 @@ import sys
 import venv
 from pathlib import Path
 
-REQUIRED_MODULES: tuple[str, ...] = ("bumpversion", "mypy")
+REQUIRED_MODULES: tuple[str, ...] = (
+    "bumpversion", "mypy", "pandas", "streamlit"
+)
 
 
 def repo_root() -> Path:
