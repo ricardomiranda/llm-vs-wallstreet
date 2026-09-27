@@ -29,7 +29,7 @@ def report_recommendations(database: Path) -> int:
         summary = connection.execute(
             "SELECT priced_security_count, unpriced_security_count, "
             "priced_portfolio_value_eur, latest_price_date, "
-            "unconverted_cash_count "
+            "unconverted_cash_count, total_security_count "
             "FROM current_portfolio_value_eur"
         ).fetchone()
         if summary is None or summary[3] is None:
@@ -41,19 +41,27 @@ def report_recommendations(database: Path) -> int:
             portfolio_value,
             latest_price_date,
             unconverted_cash_count,
+            total_security_count,
         ) = summary
-        if unpriced_count or unconverted_cash_count:
+        unmapped_pct = (
+            100.0 * int(unpriced_count) / int(total_security_count)
+            if total_security_count else 100.0
+        )
+        if unmapped_pct >= 2.0 or unconverted_cash_count:
             print(
-                f"No sell recommendations generated: {unpriced_count} security(ies) "
-                f"lack matched prices and {unconverted_cash_count} cash balance(s) "
-                "lack EUR conversion. Current price coverage is "
-                f"{priced_count} priced security(ies); complete portfolio weights "
-                "cannot be calculated yet."
+                f"No sell recommendations generated: {unpriced_count} of "
+                f"{total_security_count} securities ({unmapped_pct:.2f}%) lack "
+                f"matched prices; {unconverted_cash_count} cash balance(s) "
+                "lack EUR conversion. Recommendations require fewer than 2% "
+                "unpriced securities and converted cash."
             )
             return 0
         print(
-            f"Portfolio priced value: €{portfolio_value:,.2f}; latest price date: "
-            f"{latest_price_date}; default max single-security weight: {limit_pct:.2f}%"
+            f"Portfolio value (unpriced holdings = €0): €{portfolio_value:,.2f}; "
+            f"latest price date: "
+            f"{latest_price_date}; {unpriced_count} of {total_security_count} "
+            f"securities ({unmapped_pct:.2f}%) valued at €0; default max "
+            f"single-security weight: {limit_pct:.2f}%"
         )
         recommendations = connection.execute(
             """SELECT symbol, description, current_quantity, price_eur,

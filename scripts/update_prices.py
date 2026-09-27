@@ -140,7 +140,7 @@ WITH current_snapshots AS (
 ), position_total AS (
     SELECT
         SUM(CASE WHEN q.security_id IS NOT NULL
-                 THEN p.quantity * q.price_eur END) AS priced_value_eur,
+                 THEN p.quantity * q.price_eur ELSE 0.0 END) AS priced_value_eur,
         SUM(CASE WHEN q.security_id IS NULL THEN 1 ELSE 0 END) AS unpriced_count,
         SUM(CASE WHEN q.security_id IS NOT NULL THEN 1 ELSE 0 END) AS priced_count
     FROM all_current_positions AS p
@@ -175,7 +175,8 @@ SELECT
     (SELECT priced_count FROM position_total) AS priced_security_count,
     (SELECT unpriced_count FROM position_total) AS unpriced_security_count,
     (SELECT MAX(price_date) FROM latest_security_prices) AS latest_price_date,
-    (SELECT unconverted_cash_count FROM cash_total) AS unconverted_cash_count;
+    (SELECT unconverted_cash_count FROM cash_total) AS unconverted_cash_count,
+    (SELECT COUNT(*) FROM all_current_positions) AS total_security_count;
 DROP VIEW IF EXISTS partial_sell_recommendations;
 CREATE VIEW partial_sell_recommendations AS
 WITH portfolio AS (
@@ -196,7 +197,9 @@ WITH portfolio AS (
     CROSS JOIN portfolio
     CROSS JOIN thresholds
     LEFT JOIN position_limits AS l ON l.security_id = p.security_id
-    WHERE portfolio.unpriced_security_count = 0
+    WHERE portfolio.total_security_count > 0
+      AND 100.0 * portfolio.unpriced_security_count
+              / portfolio.total_security_count < 2.0
       AND portfolio.unconverted_cash_count = 0
       AND portfolio.priced_portfolio_value_eur > 0
 )

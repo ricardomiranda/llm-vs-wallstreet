@@ -51,6 +51,7 @@ def load_dashboard_data(database: Path) -> tuple[dict[str, object], list[Row], l
             "unpriced_security_count": 0,
             "latest_price_date": None,
             "unconverted_cash_count": 0,
+            "total_security_count": 0,
         }
         if "current_portfolio_value_eur" in objects:
             cursor = connection.execute("SELECT * FROM current_portfolio_value_eur")
@@ -223,8 +224,9 @@ def main() -> None:
 
     metric_columns = st.columns(4)
     metric_columns[0].metric(
-        "Priced portfolio value", format_eur(summary.get("priced_portfolio_value_eur")),
-        help="Includes priced positions and converted cash; incomplete when coverage is below 100%.",
+        "Portfolio value (unpriced = €0)",
+        format_eur(summary.get("priced_portfolio_value_eur")),
+        help="Unpriced positions are valued at €0; this is partial when coverage is below 100%.",
     )
     metric_columns[1].metric("Price coverage", f"{coverage:.0%}", coverage_text)
     metric_columns[2].metric("Latest daily close", str(latest_price_date))
@@ -232,8 +234,14 @@ def main() -> None:
     if unpriced_count:
         st.warning(
             f"{unpriced_count} holding(s) are missing a confirmed price. "
-            "Portfolio value and weights are partial; prices are delayed daily closes, not live quotes."
+            "They count as €0 toward recommendations, and weights are partial; "
+            "prices are delayed daily closes, not live quotes."
         )
+        if unpriced_count / security_count < 0.02:
+            st.info(
+                f"Unpriced share is {100.0 * unpriced_count / security_count:.2f}% "
+                "(<2%); recommendation calculations proceed with these holdings valued at €0."
+            )
 
     overview_tab, holdings_tab, limits_tab, snapshots_tab = st.tabs(
         ["Overview", "Holdings", "Limits & review", "Snapshots"]
@@ -327,10 +335,16 @@ def main() -> None:
         st.subheader("Rule-based review flags")
         st.caption(
             "These are configurable concentration thresholds, not investment advice. "
-            "Alerts are suppressed until every current security has a price."
+            "Unpriced holdings count as €0; recommendation alerts are suppressed "
+            "when 2% or more of current securities are unpriced."
         )
-        if unpriced_count:
-            st.info("Complete price coverage before portfolio weights and limit alerts are shown.")
+        total_count = security_count
+        unmapped_pct = 100.0 * unpriced_count / total_count if total_count else 100.0
+        if unpriced_count and unmapped_pct >= 2.0:
+            st.info(
+                f"{unpriced_count} of {total_count} securities ({unmapped_pct:.2f}%) "
+                "are unpriced. Recommendations require less than 2%."
+            )
         elif alerts:
             st.dataframe(pd.DataFrame(alerts), width="stretch", hide_index=True)
         else:

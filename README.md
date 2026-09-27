@@ -1,6 +1,6 @@
 # llm-vs-wallstreet
 
-version `0.14.0`.
+version `0.14.1`.
 
 This project helps me manage my securities portfolio. It works from real
 brokerage data and uses large language models to answer one question above
@@ -71,11 +71,12 @@ The default single-security concentration cap is 10%. Run
 `.venv/bin/python scripts/recommend_positions.py` to receive an estimated
 partial-sell quantity and EUR value for positions over their cap. A
 security-specific `position_limits.max_portfolio_pct` overrides the default.
-Recommendations are suppressed while any current holding lacks a matched
-price or a cash balance lacks EUR conversion, so portfolio weights are not
-calculated from incomplete coverage. Sale estimates assume proceeds remain as
-portfolio cash and exclude taxes, fees, and price movement; no orders are
-placed.
+Unpriced holdings count as €0 for recommendation calculations. Recommendations
+are suppressed when 2% or more of current securities lack a matched price, or
+when a cash balance lacks EUR conversion. This can understate portfolio value
+and concentration when coverage is incomplete. Sale estimates assume proceeds
+remain as portfolio cash and exclude taxes, fees, and price movement; no orders
+are placed.
 
 ## Portfolio dashboard
 
