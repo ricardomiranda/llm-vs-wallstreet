@@ -1,6 +1,6 @@
 # llm-vs-wallstreet
 
-version `0.11.0`.
+version `0.12.0`.
 
 This project helps me manage my securities portfolio. It works from real
 brokerage data and uses large language models to answer one question above
@@ -66,6 +66,28 @@ ECB reference rates. These are not live quotes; unmatched securities are
 reported rather than guessed. `current_security_values_eur` and
 `current_portfolio_value_eur` provide EUR-converted position and portfolio
 values from the latest stored prices.
+
+The default single-security concentration cap is 10%. Run
+`.venv/bin/python scripts/recommend_positions.py` to receive an estimated
+partial-sell quantity and EUR value for positions over their cap. A
+security-specific `position_limits.max_portfolio_pct` overrides the default.
+Recommendations are suppressed while any current holding lacks a matched
+price or a cash balance lacks EUR conversion, so portfolio weights are not
+calculated from incomplete coverage. Sale estimates assume proceeds remain as
+portfolio cash and exclude taxes, fees, and price movement; no orders are
+placed.
+
+Change the default cap in the local database with:
+
+```sql
+UPDATE portfolio_settings
+SET max_single_security_weight_pct = 8.0
+WHERE singleton_id = 1;
+```
+
+For a security-specific cap, add a row to `position_limits` using the
+security's `security_id`; its `max_portfolio_pct` takes precedence over the
+default.
 
 ## Status
 
