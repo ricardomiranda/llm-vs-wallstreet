@@ -1,6 +1,6 @@
 ---
-description: Fast-forward the local default branch to origin, then ask before checking out main or deleting merged branches (runs on a free opencode model)
-model: opencode/mimo-v2.6-flash-free
+description: Fast-forward the local default branch to origin, then ask before checking out main or deleting merged branches
+model: github-copilot/gpt-6-luna
 ---
 
 # Sync main
@@ -11,7 +11,6 @@ Shared rules, SSH retry, fast-forward, and merged-branch cleanup: [shared-git.md
 
 ## Extra hard rules
 
-- Run this command on a **free** opencode model. The `model` field in the frontmatter pins one; keep it on a model whose id ends in `-free` (see `opencode models`). Do not switch to a paid model.
 - Do not stash, commit, or switch away from a dirty branch to make the sync work.
 - Stay on the current branch unless it is already the default branch and the working tree is clean.
 - **Never delete a branch or check out another branch without asking the user first.** Step 4 is a hard gate: ask, then wait.
