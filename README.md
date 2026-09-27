@@ -1,6 +1,6 @@
 # llm-vs-wallstreet
 
-version `0.9.0`.
+version `0.10.0`.
 
 This project helps me manage my securities portfolio. It works from real
 brokerage data and uses large language models to answer one question above
@@ -39,6 +39,9 @@ SQLite portfolio database:
 ```bash
 .venv/bin/python scripts/import_portfolio.py
 ```
+
+Use `/update-positions` in OpenCode to check `references/` for new timestamped
+statements, validate supported files, and import them into the database.
 
 The importer stores a separate snapshot for each statement in
 `output/portfolio.sqlite3`; it preserves older statement dates and refreshes a

@@ -488,24 +488,56 @@ def import_snapshot(connection: sqlite3.Connection, snapshot: Snapshot) -> bool:
     return existing is None
 
 
-def discover_snapshots(references: Path) -> list[Snapshot]:
-    """Parse all supported timestamped statement files in date order."""
-    snapshots: list[Snapshot] = []
+def discover_statement_files(references: Path) -> list[tuple[Path, str, str]]:
+    """List supported statement files with their broker and filename date."""
+    files: list[tuple[Path, str, str]] = []
     for path in sorted(references.iterdir()):
         match = FILENAME_PATTERN.fullmatch(path.name)
         if match is None:
             continue
         date_parts = match.group("date")
         as_of_date = f"{date_parts[:4]}-{date_parts[4:6]}-{date_parts[6:8]}"
-        if match.group("broker") == "degiro":
+        files.append((path, match.group("broker"), as_of_date))
+    return files
+
+
+def discover_snapshots(references: Path) -> list[Snapshot]:
+    """Parse all supported timestamped statement files in date order."""
+    snapshots: list[Snapshot] = []
+    for path, broker, as_of_date in discover_statement_files(references):
+        if broker == "degiro":
             snapshots.append(read_degiro(path, as_of_date))
         else:
             snapshots.append(read_interactive_brokers(path, as_of_date))
     return snapshots
 
 
-def run(database: Path, references: Path) -> int:
-    """Initialize the schema and import new snapshots."""
+def run(database: Path, references: Path, check_only: bool = False) -> int:
+    """Initialize the schema and import new snapshots, or list new files."""
+    if check_only:
+        statement_files = discover_statement_files(references)
+        if not database.exists():
+            for path, _, as_of_date in statement_files:
+                print(f"New: {path.name} ({as_of_date})")
+            if not statement_files:
+                print("No supported timestamped statement files found")
+            return len(statement_files)
+        with sqlite3.connect(database) as connection:
+            existing_sources = {
+                row[0]
+                for row in connection.execute("SELECT source_file FROM snapshots")
+            }
+        new_snapshots = [
+            (path, as_of_date)
+            for path, _, as_of_date in statement_files
+            if path.name not in existing_sources
+        ]
+        for path, as_of_date in new_snapshots:
+            print(f"New: {path.name} ({as_of_date})")
+        if not new_snapshots:
+            print("No new timestamped statement files")
+        return len(new_snapshots)
+
     database.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(database) as connection:
         connection.executescript(SCHEMA)
@@ -533,9 +565,17 @@ def main(arguments: Sequence[str] | None = None) -> int:
         "--references", type=Path, default=REFERENCES,
         help="Directory containing timestamped broker statements",
     )
+    parser.add_argument(
+        "--check", action="store_true",
+        help="List supported statement files not yet in the database without importing",
+    )
     options = parser.parse_args(arguments)
-    inserted = run(options.database, options.references)
-    print(f"Imported {inserted} new snapshot(s) into {options.database}")
+    if options.check:
+        new_count = run(options.database, options.references, check_only=True)
+        print(f"Found {new_count} new statement file(s)")
+    else:
+        imported = run(options.database, options.references)
+        print(f"Imported {imported} new snapshot(s) into {options.database}")
     return 0
 
 
