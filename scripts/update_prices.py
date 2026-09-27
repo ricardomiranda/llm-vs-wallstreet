@@ -18,6 +18,7 @@ from typing import Any, Sequence
 from zoneinfo import ZoneInfo
 
 from import_portfolio import DEFAULT_DATABASE
+from reviewed_price_symbols import REVIEWED_YAHOO_SYMBOLS
 
 
 YAHOO_SEARCH_URL = "https://query1.finance.yahoo.com/v1/finance/search"
@@ -298,6 +299,10 @@ def load_securities(connection: sqlite3.Connection) -> list[Security]:
 
 def resolve_provider_symbol(security: Security) -> str:
     """Resolve a broker ticker/ISIN to a Yahoo Finance symbol."""
+    reviewed_symbol = REVIEWED_YAHOO_SYMBOLS.get(security.security_id)
+    if reviewed_symbol is not None:
+        return reviewed_symbol
+
     source_terms = meaningful_name_terms(security.description)
     queries = [security.symbol] if security.symbol != security.security_id else []
     queries.append(security.description)
