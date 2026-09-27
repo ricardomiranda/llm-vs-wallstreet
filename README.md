@@ -1,6 +1,6 @@
 # llm-vs-wallstreet
 
-version `0.7.1`.
+version `0.8.0`.
 
 This project helps me manage my securities portfolio. It works from real
 brokerage data and uses large language models to answer one question above
