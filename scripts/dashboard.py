@@ -345,10 +345,66 @@ def main() -> None:
                 f"{unpriced_count} of {total_count} securities ({unmapped_pct:.2f}%) "
                 "are unpriced. Recommendations require less than 2%."
             )
-        elif alerts:
-            st.dataframe(pd.DataFrame(alerts), width="stretch", hide_index=True)
         else:
-            st.success("No configured position limits are currently breached.")
+            with connect_readonly(database) as connection:
+                cursor = connection.execute(
+                    """SELECT symbol, description, current_quantity,
+                              price_date, price_eur, position_value_eur,
+                              portfolio_value_eur, current_weight_pct,
+                              target_weight_pct, recommended_sell_quantity,
+                              recommended_sell_value_eur
+                       FROM partial_sell_recommendations
+                       ORDER BY current_weight_pct DESC"""
+                )
+                recommendation_columns = [
+                    column[0] for column in cursor.description or []
+                ]
+                recommendations = [
+                    dict(zip(recommendation_columns, row, strict=True))
+                    for row in cursor.fetchall()
+                ]
+            if recommendations:
+                st.warning(
+                    "Rule-based partial-sale estimates—not personalized investment "
+                    "advice or trade instructions. Unpriced holdings are valued at €0."
+                )
+                st.dataframe(
+                    pd.DataFrame(recommendations),
+                    width="stretch",
+                    hide_index=True,
+                    column_config={
+                        "current_quantity": st.column_config.NumberColumn(
+                            "Current quantity", format="%.6g"
+                        ),
+                        "price_eur": st.column_config.NumberColumn(
+                            "Price (EUR)", format="€%.4f"
+                        ),
+                        "position_value_eur": st.column_config.NumberColumn(
+                            "Position value (EUR)", format="€%.2f"
+                        ),
+                        "portfolio_value_eur": st.column_config.NumberColumn(
+                            "Portfolio value (EUR)", format="€%.2f"
+                        ),
+                        "current_weight_pct": st.column_config.NumberColumn(
+                            "Current weight", format="%.2f%%"
+                        ),
+                        "target_weight_pct": st.column_config.NumberColumn(
+                            "Maximum weight", format="%.2f%%"
+                        ),
+                        "recommended_sell_quantity": st.column_config.NumberColumn(
+                            "Estimated quantity to sell", format="%.6g"
+                        ),
+                        "recommended_sell_value_eur": st.column_config.NumberColumn(
+                            "Estimated value to sell (EUR)", format="€%.2f"
+                        ),
+                    },
+                )
+            else:
+                st.success("No positions currently exceed their configured maximum weights.")
+
+        if alerts:
+            st.subheader("Configured position-limit alerts")
+            st.dataframe(pd.DataFrame(alerts), width="stretch", hide_index=True)
 
         st.subheader("Configured security limits")
         configured = [
