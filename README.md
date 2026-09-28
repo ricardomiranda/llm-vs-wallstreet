@@ -1,6 +1,6 @@
 # llm-vs-wallstreet
 
-version `0.14.2`.
+version `0.14.8`.
 
 This project helps me manage my securities portfolio. It works from real
 brokerage data and uses large language models to answer one question above
@@ -78,6 +78,35 @@ and concentration when coverage is incomplete. Sale estimates assume proceeds
 remain as portfolio cash and exclude taxes, fees, and price movement; no orders
 are placed.
 
+Use `/review-losses` or run `.venv/bin/python scripts/review_losses.py` to flag
+broker-reported unrealized losses for review. The default review threshold is
+20% of reported cost basis and can be changed with `--threshold-percent`.
+The threshold prompts a review; it is not an automatic sell signal. Review
+whether dividends and other income materially affect total return; statement
+P/L may omit dividend income. First-seen snapshot dates are context only and do
+not establish the purchase date or a one-year holding period. The usual
+one-year hold is a preference rather than an absolute rule if the investment
+thesis materially changes.
+
+The dashboard's **Limits & review** tab includes broker-reported loss flags and
+a 0–5 urgency score: 0 below the review threshold, 1 at the threshold, then
+one additional point for every 10 percentage points of loss, capped at 5. The
+score measures loss severity only and is not a sell recommendation.
+
+The dashboard's on-demand **Individual security report** combines local
+position and loss context with Yahoo Finance 52-week price context and recent
+issuer-matched headlines when available, along with a one-year price-only return
+and a broad-market comparison. Headlines are best-effort and should be checked
+against company filings and primary sources. The risk-budget panel lets you
+explicitly classify uncertain/speculative holdings, saves those choices to a
+local database table, and compares their share of portfolio value with your
+15% budget. Concentration-trim candidates and severe-loss flags are suggested
+for consideration but never selected automatically. You can add speculative/high-
+upside holdings you identify and positions you choose to keep despite a strong
+sell suggestion.
+Only your saved choices count toward this exposure budget; they are not automatic
+risk classifications or a loss limit.
+
 ## Portfolio dashboard
 
 Launch the local Streamlit dashboard with:
@@ -86,11 +115,13 @@ Launch the local Streamlit dashboard with:
 .venv/bin/python -m streamlit run scripts/dashboard.py
 ```
 
-The dashboard reads `output/portfolio.sqlite3` in read-only mode and shows
-portfolio valuation and price coverage, largest positions, searchable holdings,
-missing prices, configured concentration limits, and snapshot history. It runs
-locally; it does not upload portfolio data. Values use stored delayed daily
-prices and are not live quotes.
+The dashboard reads `output/portfolio.sqlite3` locally and shows portfolio
+valuation and price coverage, largest positions, searchable holdings, missing
+prices, configured concentration limits, loss reviews, individual security
+reports, and snapshot history. Saving explicit risky-holding classifications
+writes those labels to the local database; no other dashboard action changes
+portfolio data. It does not upload portfolio data. Values use stored delayed
+daily prices and are not live quotes.
 
 Change the default cap in the local database with:
 
