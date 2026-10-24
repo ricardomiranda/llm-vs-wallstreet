@@ -28,7 +28,7 @@ Individual reports fetch Yahoo Finance chart and search data on demand. Include 
    .venv/bin/python scripts/review_losses.py --threshold-percent 15
    ```
 
-3. In the dashboard's **Limits & review → Individual security report**, choose the flagged security to see broker facts, price context, dividend context, and dated issuer headlines. The report fetches public Yahoo Finance chart/search data on demand.
+3. In the dashboard's **Limits & review → Loss review and urgency**, use the **Minimum current position value to show (EUR)** filter to focus the table on larger current positions; it defaults to positions above €70 and can be lowered or raised. This only filters the table, not the underlying loss analysis or individual security reports. Choose any security in **Individual security report** to see broker facts, price context, dividend context, and dated issuer headlines. The report fetches public Yahoo Finance chart/search data on demand.
 4. For each flagged position, explain its 0–5 urgency score, broker-reported P/L and cost basis, currency, statement date, and first-seen snapshot date. First-seen is not a purchase date and must not be treated as proof that the position has been held for a year.
 5. Review total return including dividends, the original investment thesis, company/fund fundamentals, and relevant M&A, earnings, regulatory or legal developments. Clearly state when these sources return no information. Let the user decide; do not turn a score or headline into a sell instruction.
 
@@ -39,6 +39,7 @@ Individual reports fetch Yahoo Finance chart and search data on demand. Include 
 - Use broker-reported unrealized P/L and cost basis; do not treat a price decline alone as a sell signal.
 - Broker statement P/L may exclude dividends and may use different reporting dates across accounts. Call this out, especially for income holdings such as AT&T.
 - Positions lacking cost basis or unrealized P/L are listed as not assessed, not treated as having zero loss.
+- The dashboard's position-value filter is an attention aid based on latest EUR-marked position value, not a loss-risk threshold. A low-value speculative position can still lose all its value; a higher value is not proof it should be sold.
 - Historical snapshot dates show only when a position first appears in available statements; they do not establish its actual purchase date or one-year holding period.
 - External headlines and price metadata are best-effort, may be stale or incomplete, and must be verified against primary company/regulatory sources. Dividend yield is historical/provider-reported and dividends may change or stop.
 - Never state that the 15% risk budget is within or exceeded unless the user has explicitly selected the risky holdings in the dashboard. The selection is currently session-only.

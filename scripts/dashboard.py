@@ -43,6 +43,23 @@ def urgency_background_style(value: object) -> str:
     return ""
 
 
+def filter_loss_reviews_by_position_value(
+    loss_reviews: list[LossReview],
+    position_values: dict[str, object],
+    minimum_value_eur: float,
+) -> list[LossReview]:
+    """Keep loss-review rows whose latest priced EUR position exceeds a cutoff."""
+    visible_reviews: list[LossReview] = []
+    for review in loss_reviews:
+        position_value = position_values.get(review.security_id)
+        if (
+            isinstance(position_value, (int, float))
+            and position_value > minimum_value_eur
+        ):
+            visible_reviews.append(review)
+    return visible_reviews
+
+
 st.set_page_config(
     page_title="Portfolio Desk",
     page_icon="📈",
@@ -1004,50 +1021,94 @@ def main() -> None:
             "First-seen snapshot dates are not purchase dates; consider an earlier "
             "review if the investment thesis materially changes."
         )
+        minimum_position_value = st.number_input(
+            "Minimum current position value to show (EUR)",
+            min_value=0.0,
+            value=70.0,
+            step=10.0,
+            help=(
+                "Filters the loss-review table by latest stored EUR position value. "
+                "Positions at or below this value, or without a current EUR value, "
+                "are hidden from the table."
+            ),
+        )
+        position_values: dict[str, object] = {
+            str(row["security_id"]): row.get("position_value_eur")
+            for row in holdings
+        }
+        visible_loss_reviews = filter_loss_reviews_by_position_value(
+            loss_reviews, position_values, minimum_position_value
+        )
+        missing_value_count = sum(
+            not isinstance(position_values.get(review.security_id), (int, float))
+            for review in loss_reviews
+        )
         if loss_reviews:
             review_count = sum(review.urgency_score > 0 for review in loss_reviews)
             st.warning(
-                f"{review_count} holding(s) meet or exceed the loss review trigger. "
+                f"{review_count} holding(s) meet or exceed the loss review trigger "
+                "across all position sizes. "
                 "Review total return (including dividends), the original investment "
                 "thesis, and material business changes. Reported P/L may exclude "
                 "dividends; first-seen dates are not purchase dates."
             )
-            loss_rows = [
-                {
-                    "Urgency (0–5)": review.urgency_score,
-                    "Symbol": review.symbol,
-                    "Description": review.description,
-                    "Broker": review.broker,
-                    "Loss %": review.loss_percent,
-                    "Unrealized P/L": review.unrealized_pl,
-                    "Cost basis": review.cost_basis,
-                    "Currency": review.currency,
-                    "Statement date": review.statement_date,
-                    "First seen": review.first_seen_date,
-                    "Days observed": review.days_since_first_seen,
-                }
-                for review in sorted(
-                    loss_reviews,
-                    key=lambda item: (item.urgency_score, item.loss_percent),
-                    reverse=True,
+            if visible_loss_reviews:
+                loss_rows = [
+                    {
+                        "Urgency (0–5)": review.urgency_score,
+                        "Symbol": review.symbol,
+                        "Description": review.description,
+                        "Position value (EUR)": position_values[review.security_id],
+                        "Broker": review.broker,
+                        "Loss %": review.loss_percent,
+                        "Unrealized P/L": review.unrealized_pl,
+                        "Cost basis": review.cost_basis,
+                        "Currency": review.currency,
+                        "Statement date": review.statement_date,
+                        "First seen": review.first_seen_date,
+                        "Days observed": review.days_since_first_seen,
+                    }
+                    for review in sorted(
+                        visible_loss_reviews,
+                        key=lambda item: (item.urgency_score, item.loss_percent),
+                        reverse=True,
+                    )
+                ]
+                st.dataframe(
+                    pd.DataFrame(loss_rows).style.map(
+                        urgency_background_style,
+                        subset=["Urgency (0–5)"],
+                    ),
+                    width="stretch",
+                    hide_index=True,
+                    column_config={
+                        "Urgency (0–5)": st.column_config.NumberColumn(format="%d/5"),
+                        "Position value (EUR)": st.column_config.NumberColumn(
+                            format="€%.2f"
+                        ),
+                        "Loss %": st.column_config.NumberColumn(format="%.2f%%"),
+                        "Unrealized P/L": st.column_config.NumberColumn(format="%.2f"),
+                        "Cost basis": st.column_config.NumberColumn(format="%.2f"),
+                    },
                 )
-            ]
-            st.dataframe(
-                pd.DataFrame(loss_rows).style.map(
-                    urgency_background_style,
-                    subset=["Urgency (0–5)"],
-                ),
-                width="stretch",
-                hide_index=True,
-                column_config={
-                    "Urgency (0–5)": st.column_config.NumberColumn(format="%d/5"),
-                    "Loss %": st.column_config.NumberColumn(format="%.2f%%"),
-                    "Unrealized P/L": st.column_config.NumberColumn(format="%.2f"),
-                    "Cost basis": st.column_config.NumberColumn(format="%.2f"),
-                },
+            else:
+                st.info(
+                    "No loss-review positions are above the current EUR value cutoff. "
+                    "Lower it to show smaller positions."
+                )
+            st.caption(
+                f"Showing {len(visible_loss_reviews)} of {len(loss_reviews)} loss "
+                f"positions with current value above €{minimum_position_value:,.2f}. "
+                f"{len(loss_reviews) - len(visible_loss_reviews) - missing_value_count} "
+                "are at or below the cutoff."
             )
         else:
             st.success("No holdings cross the selected loss-review threshold.")
+        if missing_value_count:
+            st.info(
+                f"{missing_value_count} loss position(s) are hidden because no current "
+                "EUR position value is available."
+            )
         unavailable_count = sum(unavailable_losses.values())
         if unavailable_count:
             unavailable_summary = ", ".join(
