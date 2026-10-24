@@ -862,6 +862,34 @@ def main() -> None:
             if isinstance(portfolio_value, (int, float)) and portfolio_value > 0
             else None
         )
+        selected_risk_rows = [
+            {
+                "Symbol": row["symbol"],
+                "Description": row["description"],
+                "Position (EUR)": row["position_value_eur"],
+                "Portfolio share (%)": (
+                    100.0 * float(row["position_value_eur"]) / float(portfolio_value)
+                    if isinstance(row["position_value_eur"], (int, float))
+                    and isinstance(portfolio_value, (int, float))
+                    and portfolio_value > 0
+                    else None
+                ),
+            }
+            for row in holdings
+            if str(row["security_id"]) in selected_risky_ids
+        ]
+        if selected_risk_rows:
+            st.dataframe(
+                pd.DataFrame(selected_risk_rows),
+                width="stretch",
+                hide_index=True,
+                column_config={
+                    "Position (EUR)": st.column_config.NumberColumn(format="€%.2f"),
+                    "Portfolio share (%)": st.column_config.NumberColumn(format="%.2f%%"),
+                },
+            )
+        else:
+            st.caption("No holdings are currently selected for the risk budget.")
         risk_columns = st.columns(3)
         risk_columns[0].metric("Selected uncertain exposure", format_eur(risky_value))
         risk_columns[1].metric(
