@@ -15,7 +15,7 @@ Individual reports fetch Yahoo Finance chart and search data on demand. Include 
 
 For any position with urgency **4/5 or 5/5**, read at least **three full, relevant articles or primary-source publications** before drawing an evidence-based conclusion about what may be contributing to the loss or whether the original thesis needs reassessment, unless either exception applies: the current position is explicitly saved as the user's risk investment in the portfolio risk classifications, or its latest stored EUR position value is **below €10**. A value of exactly €10 does not qualify for the size exception. Determine size from the latest stored EUR position value, not cost basis or original investment. Apply either exception independently. Prefer issuer filings/releases and regulator documents for primary facts, supplemented by independent reputable reporting or analysis. Do not count search-result snippets, duplicate syndications of the same release, or articles that merely repeat a price move as three independent confirmations. Cite/link each item with publisher and date; summarize what each independently establishes and note disagreement or limits. If three suitable full-text sources cannot be accessed, say how many were reviewed and that confirmation is incomplete; do not imply the threshold alone recommends selling. This extra research supports a review, not a buy/sell instruction.
 
-After reviewing a security's news, persist a dated research note in the selected portfolio database so its findings remain available in later reports. Save a concise synthesis, sourced facts, separate analysis, unresolved limitations, the review's urgency/current EUR position value where available, plus dated citations for sources actually consulted. Mark whether each source's full text was read. Do not store search snippets as full-text reviews or invent findings or citation details. Append a new note per review; preserve prior research history.
+After reviewing a security's news, persist a dated research note in the selected portfolio database so its findings remain available in later reports. Save a concise synthesis, sourced facts, separate analysis, unresolved limitations, the review's urgency/current EUR position value where available, plus dated citations for sources actually consulted. Mark whether each source's full text was read. Explicitly record whether the research changed the recommendation and why; distinguish this judgment from rule-based concentration trim estimates. Do not store search snippets as full-text reviews or invent findings or citation details. Append a new note per review; preserve prior research history.
 
 ## Workflow
 
@@ -47,6 +47,7 @@ After reviewing a security's news, persist a dated research note in the selected
      "urgency_score": 4,
      "position_value_eur": 123.45,
      "summary": "Concise sourced synthesis, separating facts from interpretation.",
+     "recommendation_impact": "Research did not change the concentration trim estimate; it remains a rule-based limit check, not a trade instruction.",
      "findings": ["Sourced factual finding"],
      "limitations": ["Unresolved question or unavailable evidence"],
      "sources": [

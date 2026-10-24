@@ -357,12 +357,45 @@ def format_eur(value: object) -> str:
     return f"€{value:,.2f}"
 
 
+def format_number(value: object, decimal_places: int = 2) -> str:
+    """Format an optional number without coercing arbitrary database values."""
+    if not isinstance(value, (int, float)):
+        return "unavailable"
+    return f"{value:,.{decimal_places}f}"
+
+
 @st.cache_data(ttl=900, show_spinner=False)
 def cached_market_context(
     symbol: str, description: str, provider_symbol: str
 ) -> MarketContext:
     """Cache external market lookups briefly to avoid repeat API requests."""
     return fetch_market_context(symbol, description, provider_symbol)
+
+
+def load_concentration_recommendation(
+    database: Path, security_id: str
+) -> dict[str, object] | None:
+    """Load an eligible rule-based concentration trim for one security."""
+    with connect_readonly(database) as connection:
+        view_exists = connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'view' "
+            "AND name = 'partial_sell_recommendations'"
+        ).fetchone()
+        if view_exists is None:
+            return None
+        cursor = connection.execute(
+            """SELECT symbol, description, price_date, price_eur,
+                      current_weight_pct, target_weight_pct,
+                      recommended_sell_quantity, recommended_sell_value_eur
+               FROM partial_sell_recommendations
+               WHERE security_id = ?""",
+            (security_id,),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            return None
+        columns = [column[0] for column in cursor.description or []]
+    return dict(zip(columns, row, strict=True))
 
 
 def render_security_report(
@@ -396,6 +429,10 @@ def render_security_report(
                 str(holding["description"]),
                 provider_symbol,
             )
+    concentration_recommendation = load_concentration_recommendation(
+        database, security_id
+    )
+    saved_research = load_security_research_notes(database, security_id)
 
     position_value = (
         float(position_value_raw)
@@ -424,6 +461,75 @@ def render_security_report(
     )
 
     st.markdown(f"### {holding['symbol']} — {holding['description']}")
+    st.markdown("#### Recommendation digest")
+    if concentration_recommendation is not None:
+        recommendation_price = concentration_recommendation["price_eur"]
+        recommendation_price_text = (
+            f"€{format_number(recommendation_price, 4)}"
+            if isinstance(recommendation_price, (int, float)) else "unavailable"
+        )
+        recommendation_date = (
+            concentration_recommendation["price_date"] or "date unavailable"
+        )
+        st.warning(
+            f"**Rule-based concentration trim estimate—not a buy/sell instruction:** "
+            f"the position is {format_number(concentration_recommendation['current_weight_pct'])}% "
+            f"of the priced portfolio, above its {format_number(concentration_recommendation['target_weight_pct'])}% "
+            f"configured maximum. The model estimates trimming about "
+            f"{format_number(concentration_recommendation['recommended_sell_quantity'], 6)} units "
+            f"(approximately {format_eur(concentration_recommendation['recommended_sell_value_eur'])}) "
+            f"using {recommendation_price_text} per unit ({recommendation_date})."
+        )
+    else:
+        st.info(
+            "**No concentration-based trim estimate is currently generated for this security.** "
+            "This dashboard does not generate buy recommendations. Loss urgency is a review "
+            "signal only and is not, by itself, a sell recommendation."
+        )
+
+    if matching_review is not None:
+        st.write(
+            f"**Loss-review context:** {matching_review.loss_percent:.1f}% "
+            f"broker-reported unrealized loss; urgency "
+            f"{matching_review.urgency_score}/5. This measures loss severity only and "
+            "does not determine whether to sell."
+        )
+    else:
+        st.write(
+            "**Loss-review context:** no usable broker cost-basis/P&L record is available; "
+            "loss severity is not assessed."
+        )
+
+    if saved_research:
+        latest_research = saved_research[0]
+        st.markdown("**Latest researched news and its impact**")
+        st.write(latest_research.summary)
+        if latest_research.findings:
+            st.markdown("Findings from sources recorded as consulted:")
+            for finding in latest_research.findings:
+                st.markdown(f"- {finding}")
+        st.markdown(
+            "**Did the research change the recommendation?** "
+            f"{latest_research.recommendation_impact or 'No impact assessment was recorded.'}"
+        )
+        if latest_research.limitations:
+            st.markdown("**Unresolved / not established:**")
+            for limitation in latest_research.limitations:
+                st.markdown(f"- {limitation}")
+        if latest_research.sources:
+            st.markdown("**Sources consulted (reading status as recorded):**")
+            for source in latest_research.sources:
+                source_date = source.published_at or "date unavailable"
+                read_status = "full text read" if source.full_text_read else "headline/abstract only"
+                st.markdown(
+                    f"- [{source.title}]({source.url}) — {source.publisher}, "
+                    f"{source_date}; {read_status}."
+                )
+    else:
+        st.caption(
+            "No saved online research is recorded for this security. Headlines below "
+            "are search results and have not been independently verified as full articles."
+        )
     st.caption(
         f"Security ID: {security_id} · Broker(s): {holding['brokers']} · "
         f"Current quantity: {holding['quantity']}"
@@ -509,7 +615,6 @@ def render_security_report(
             "statement for this security, so the loss score is not assessed."
         )
 
-    saved_research = load_security_research_notes(database, security_id)
     st.markdown("#### Saved research history")
     if saved_research:
         for note in saved_research:
