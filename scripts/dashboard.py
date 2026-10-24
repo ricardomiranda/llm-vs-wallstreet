@@ -20,6 +20,7 @@ from review_losses import (
     load_loss_reviews,
 )
 from security_research import MarketContext, fetch_market_context
+from security_research_notes import load_security_research_notes
 from update_prices import PRICE_SCHEMA
 
 
@@ -507,6 +508,51 @@ def render_security_report(
             "No usable cost-basis/unrealized-P&L record was available in the latest "
             "statement for this security, so the loss score is not assessed."
         )
+
+    saved_research = load_security_research_notes(database, security_id)
+    st.markdown("#### Saved research history")
+    if saved_research:
+        for note in saved_research:
+            urgency_label = (
+                f" · urgency {note.urgency_score}/5"
+                if note.urgency_score is not None else ""
+            )
+            with st.expander(
+                f"{note.researched_at or 'Date unavailable'}{urgency_label}"
+            ):
+                st.write(note.summary)
+                if note.position_value_eur is not None:
+                    st.caption(
+                        "Position value at review: "
+                        f"{format_eur(note.position_value_eur)}"
+                    )
+                if note.findings:
+                    st.markdown("**Findings**")
+                    for finding in note.findings:
+                        st.markdown(f"- {finding}")
+                if note.limitations:
+                    st.markdown("**Limitations / unresolved questions**")
+                    for limitation in note.limitations:
+                        st.markdown(f"- {limitation}")
+                if note.sources:
+                    st.markdown("**Sources consulted**")
+                    for source in note.sources:
+                        source_date = source.published_at or "date unavailable"
+                        read_status = (
+                            "full text read" if source.full_text_read
+                            else "headline/abstract only"
+                        )
+                        st.link_button(
+                            f"{source.publisher} · {source_date} · {read_status}: "
+                            f"{source.title}",
+                            source.url,
+                            key=(
+                                f"saved-research-{security_id}-"
+                                f"{note.researched_at}-{source.url}"
+                            ),
+                        )
+    else:
+        st.caption("No issuer-research notes have been saved for this security yet.")
 
     if market_context is None:
         st.info(

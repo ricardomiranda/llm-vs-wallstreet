@@ -13,6 +13,8 @@ Risk tolerance: the user accepts up to 15% of total portfolio value in investmen
 
 Individual reports fetch Yahoo Finance chart and search data on demand. Include one-year price-only return versus SPY when available, issuer-related dated headlines from the last 120 days, dividend-provider context, cost basis, broker unrealized P/L, current portfolio weight, and existing urgency score. Headline tagging is keyword-based; do not state an M&A, regulatory or legal event as fact from an ambiguous headline alone. Distinguish price decline from total return, especially for dividend-oriented holdings.
 
+After reviewing a security's news, persist a dated research note in the selected portfolio database so its findings remain available in later reports. Save a concise synthesis, sourced facts, separate analysis, unresolved limitations, the review's urgency/current EUR position value where available, plus dated citations for sources actually consulted. Mark whether each source's full text was read. Do not store search snippets as full-text reviews or invent findings or citation details. Append a new note per review; preserve prior research history.
+
 ## Workflow
 
 1. Read `AGENTS.md` and verify `output/portfolio.sqlite3` contains imported snapshots. If not, ask the user to run `/update-positions` first.
@@ -30,7 +32,35 @@ Individual reports fetch Yahoo Finance chart and search data on demand. Include 
 
 3. In the dashboard's **Limits & review → Loss review and urgency**, use the **Minimum current position value to show (EUR)** filter to focus the table on larger current positions; it defaults to positions above €70 and can be lowered or raised. This only filters the table, not the underlying loss analysis or individual security reports. Choose any security in **Individual security report** to see broker facts, price context, dividend context, and dated issuer headlines. The report fetches public Yahoo Finance chart/search data on demand.
 4. For each flagged position, explain its 0–5 urgency score, broker-reported P/L and cost basis, currency, statement date, and first-seen snapshot date. First-seen is not a purchase date and must not be treated as proof that the position has been held for a year.
-5. Review total return including dividends, the original investment thesis, company/fund fundamentals, and relevant M&A, earnings, regulatory or legal developments. Clearly state when these sources return no information. Let the user decide; do not turn a score or headline into a sell instruction.
+5. For urgency 4/5 and 5/5, read and cite at least three full, relevant articles or primary-source publications when available, except for explicitly user-saved risk investments or positions whose latest stored EUR value is below €10. A position valued exactly €10 is not exempt by size. Use the source-independence and incomplete-coverage rules above. For other urgency scores, use available report context without this minimum.
+6. Review total return including dividends, the original investment thesis, company/fund fundamentals, and relevant M&A, earnings, regulatory or legal developments. Clearly state when these sources return no information. Let the user decide; do not turn a score or headline into a sell instruction.
+7. Save a note for each researched security using the project virtual environment and the database selected in the dashboard:
+
+   ```bash
+   .venv/bin/python scripts/record_security_research.py --database <path> <<'JSON'
+   {
+     "security_id": "stable portfolio security ID",
+     "symbol": "ticker",
+     "description": "issuer or fund name",
+     "urgency_score": 4,
+     "position_value_eur": 123.45,
+     "summary": "Concise sourced synthesis, separating facts from interpretation.",
+     "findings": ["Sourced factual finding"],
+     "limitations": ["Unresolved question or unavailable evidence"],
+     "sources": [
+       {
+         "title": "Filing or article title",
+         "publisher": "Publisher or issuing organization",
+         "url": "https://...",
+         "published_at": "YYYY-MM-DD",
+         "full_text_read": true
+       }
+     ]
+   }
+   JSON
+   ```
+
+   Use `null` for unknown urgency, position value, or publication date. Include only sources actually inspected and their true reading status. Save inconclusive reviews too, with limitations. The dashboard shows entries under **Saved research history**; do not overwrite or delete older notes.
 
 ## Limits
 
@@ -43,4 +73,4 @@ Individual reports fetch Yahoo Finance chart and search data on demand. Include 
 - Historical snapshot dates show only when a position first appears in available statements; they do not establish its actual purchase date or one-year holding period.
 - External headlines and price metadata are best-effort, may be stale or incomplete, and must be verified against primary company/regulatory sources. Dividend yield is historical/provider-reported and dividends may change or stop.
 - Never state that the 15% risk budget is within or exceeded unless the user has explicitly selected the risky holdings in the dashboard. The selection is currently session-only.
-- No orders are placed and no database values are changed.
+- No orders are placed. Database changes are limited to appending the sourced research notes described above; do not alter position, classification, limit, or historical research data.
