@@ -508,9 +508,12 @@ def render_security_report(
             st.markdown("Findings from sources recorded as consulted:")
             for finding in latest_research.findings:
                 st.markdown(f"- {finding}")
+        recommendation_impact = getattr(
+            latest_research, "recommendation_impact", None
+        )
         st.markdown(
             "**Did the research change the recommendation?** "
-            f"{latest_research.recommendation_impact or 'No impact assessment was recorded.'}"
+            f"{recommendation_impact or 'No impact assessment was recorded.'}"
         )
         if latest_research.limitations:
             st.markdown("**Unresolved / not established:**")
