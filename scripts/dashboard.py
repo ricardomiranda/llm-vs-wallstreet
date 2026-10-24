@@ -461,78 +461,127 @@ def render_security_report(
     )
 
     st.markdown(f"### {holding['symbol']} — {holding['description']}")
-    st.markdown("#### Recommendation digest")
+    st.markdown("#### Plain-English assessment")
     if concentration_recommendation is not None:
-        recommendation_price = concentration_recommendation["price_eur"]
-        recommendation_price_text = (
-            f"€{format_number(recommendation_price, 4)}"
-            if isinstance(recommendation_price, (int, float)) else "unavailable"
-        )
-        recommendation_date = (
+        recommendation_price_date = (
             concentration_recommendation["price_date"] or "date unavailable"
         )
-        st.warning(
-            f"**Rule-based concentration trim estimate—not a buy/sell instruction:** "
-            f"the position is {format_number(concentration_recommendation['current_weight_pct'])}% "
-            f"of the priced portfolio, above its {format_number(concentration_recommendation['target_weight_pct'])}% "
-            f"configured maximum. The model estimates trimming about "
-            f"{format_number(concentration_recommendation['recommended_sell_quantity'], 6)} units "
-            f"(approximately {format_eur(concentration_recommendation['recommended_sell_value_eur'])}) "
-            f"using {recommendation_price_text} per unit ({recommendation_date})."
+        first_paragraph = (
+            f"The position is {format_number(concentration_recommendation['current_weight_pct'])}% "
+            f"of the portfolio, above its {format_number(concentration_recommendation['target_weight_pct'])}% "
+            f"limit, so the portfolio rule supports a partial trim of about "
+            f"{format_number(concentration_recommendation['recommended_sell_quantity'], 4)} "
+            f"units ({format_eur(concentration_recommendation['recommended_sell_value_eur'])}) "
+            f"at stored prices dated {recommendation_price_date}. That is a concentration "
+            "adjustment, not a conclusion that the company is failing."
         )
     else:
-        st.info(
-            "**No concentration-based trim estimate is currently generated for this security.** "
-            "This dashboard does not generate buy recommendations. Loss urgency is a review "
-            "signal only and is not, by itself, a sell recommendation."
-        )
-
-    if matching_review is not None:
-        st.write(
-            f"**Loss-review context:** {matching_review.loss_percent:.1f}% "
-            f"broker-reported unrealized loss; urgency "
-            f"{matching_review.urgency_score}/5. This measures loss severity only and "
-            "does not determine whether to sell."
-        )
-    else:
-        st.write(
-            "**Loss-review context:** no usable broker cost-basis/P&L record is available; "
-            "loss severity is not assessed."
-        )
-
+        if matching_review is not None:
+            first_paragraph = (
+                f"The broker reports a {abs(matching_review.loss_percent):.1f}% "
+                f"unrealized loss, which warrants reviewing the holding, but the "
+                f"{matching_review.urgency_score}/5 score measures loss severity only. "
+                "It does not establish that the business outlook has worsened or that "
+                "the shares should be sold."
+            )
+        else:
+            first_paragraph = (
+                "I cannot justify buying or selling from these facts alone: there is "
+                "no concentration trim, and broker loss data is either below the "
+                "review threshold or unavailable. A price decline alone is not a "
+                "reason to sell."
+            )
     if saved_research:
         latest_research = saved_research[0]
-        st.markdown("**Latest researched news and its impact**")
-        st.write(latest_research.summary)
-        if latest_research.findings:
-            st.markdown("Findings from sources recorded as consulted:")
-            for finding in latest_research.findings:
-                st.markdown(f"- {finding}")
+        full_text_sources = [
+            source for source in latest_research.sources if source.full_text_read
+        ]
+        if full_text_sources:
+            source_names = ", ".join(
+                f"{source.publisher} ({source.published_at or 'date unavailable'})"
+                for source in full_text_sources[:3]
+            )
+            sourced_findings = [
+                finding for finding in latest_research.findings
+                if not finding.startswith((
+                    "Yahoo Finance chart:",
+                    "Yahoo Finance did not return",
+                    "Yahoo Finance returned",
+                ))
+            ]
+            source_summary = "; ".join(sourced_findings[:2])
+            news_context = (
+                f"Full articles from {source_names} reported {source_summary or latest_research.summary}"
+            )
+        elif latest_research.sources:
+            headlines = "; ".join(
+                f"{source.publisher} ({source.published_at or 'date unavailable'}): "
+                f"“{source.title}”"
+                for source in latest_research.sources[:2]
+            )
+            news_context = (
+                f"The news search returned these headlines: {headlines}. They were "
+                "not full-text reviews, so they are leads rather than confirmed causes."
+            )
+        else:
+            news_context = (
+                "The saved review found no issuer-matched news; that does not prove "
+                "there were no material developments."
+            )
         recommendation_impact = getattr(
             latest_research, "recommendation_impact", None
         )
-        st.markdown(
-            "**Did the research change the recommendation?** "
-            f"{recommendation_impact or 'No impact assessment was recorded.'}"
+        if not recommendation_impact:
+            recommendation_impact = "The saved research did not record a change to the assessment."
+        urgency_context = (
+            f"Current urgency is {matching_review.urgency_score}/5, based on the "
+            "broker loss; news does not change the score."
+            if matching_review is not None
+            else "Urgency is unassessed without valid broker loss data."
         )
-        if latest_research.limitations:
-            st.markdown("**Unresolved / not established:**")
-            for limitation in latest_research.limitations:
-                st.markdown(f"- {limitation}")
-        if latest_research.sources:
-            st.markdown("**Sources consulted (reading status as recorded):**")
-            for source in latest_research.sources:
-                source_date = source.published_at or "date unavailable"
-                read_status = "full text read" if source.full_text_read else "headline/abstract only"
-                st.markdown(
-                    f"- [{source.title}]({source.url}) — {source.publisher}, "
-                    f"{source_date}; {read_status}."
-                )
+        if (
+            matching_review is not None
+            and latest_research.urgency_score is not None
+            and latest_research.urgency_score != matching_review.urgency_score
+        ):
+            urgency_context += (
+                f" It was {latest_research.urgency_score}/5 at the saved review; the "
+                "difference comes from the current broker-loss calculation, not news."
+            )
+        second_paragraph = (
+            f"{news_context} {recommendation_impact} {urgency_context} "
+            "The original investment thesis was not provided. What specific evidence "
+            "would make you exit, and is that evidence present now?"
+        )
     else:
-        st.caption(
-            "No saved online research is recorded for this security. Headlines below "
-            "are search results and have not been independently verified as full articles."
+        if market_context is not None and market_context.news:
+            current_headlines = "; ".join(
+                f"{item.publisher} ({item.published_at or 'date unavailable'}) "
+                f"reported “{item.title}”"
+                for item in market_context.news[:2]
+            )
+            news_context = (
+                f"Recent search results include {current_headlines}. These are "
+                "headlines only, not verified explanations for the price move."
+            )
+        else:
+            news_context = (
+                "No saved article research or issuer-matched headlines are available; "
+                "this does not establish that there were no material developments."
+            )
+        urgency_context = (
+            f"Urgency remains {matching_review.urgency_score}/5 based on broker loss; "
+            "news does not change it."
+            if matching_review is not None
+            else "Urgency is unassessed without a qualifying broker loss."
         )
+        second_paragraph = (
+            f"{news_context} {urgency_context} The original investment thesis was "
+            "not provided. What specific evidence would make you exit, and is that "
+            "evidence present now?"
+        )
+    st.write(first_paragraph)
+    st.write(second_paragraph)
     st.caption(
         f"Security ID: {security_id} · Broker(s): {holding['brokers']} · "
         f"Current quantity: {holding['quantity']}"
@@ -670,72 +719,6 @@ def render_security_report(
             "external market context was not fetched."
         )
         return
-
-    st.markdown("#### Situation assessment")
-    assessment_lines: list[str] = []
-    if (
-        market_context.one_year_return_percent is not None
-        and market_context.benchmark_one_year_return_percent is not None
-    ):
-        relative_return = (
-            market_context.one_year_return_percent
-            - market_context.benchmark_one_year_return_percent
-        )
-        direction = "underperformed" if relative_return < 0 else "outperformed"
-        assessment_lines.append(
-            f"- **Market performance:** {holding['symbol']} had an approximate "
-            f"one-year price return of {market_context.one_year_return_percent:+.1f}% "
-            f"versus {market_context.benchmark_symbol} at "
-            f"{market_context.benchmark_one_year_return_percent:+.1f}%—"
-            f"{direction} by {abs(relative_return):.1f} percentage points. "
-            "These are price-only returns and exclude dividends."
-        )
-    if matching_review is not None:
-        assessment_lines.append(
-            f"- **Position result:** the latest broker statement reports "
-            f"{matching_review.loss_percent:.1f}% unrealized P/L against "
-            f"{matching_review.cost_basis:,.2f} {matching_review.currency} cost "
-            f"basis (urgency {matching_review.urgency_score}/5). Broker P/L may "
-            "not include distributions."
-        )
-    if market_context.drawdown_from_year_high_percent is not None:
-        assessment_lines.append(
-            f"- **Trading context:** the latest close is "
-            f"{abs(market_context.drawdown_from_year_high_percent):.1f}% "
-            "below the highest close in the fetched one-year window. This is a "
-            "price-range statistic, not a valuation measure."
-        )
-    if market_context.dividend_yield_percent is not None:
-        assessment_lines.append(
-            f"- **Income context:** provider-reported dividend yield is "
-            f"{market_context.dividend_yield_percent:.2f}%; verify the current "
-            "declared dividend, payout coverage, debt, and payment history."
-        )
-    else:
-        assessment_lines.append(
-            "- **Income context:** no provider dividend-yield estimate was returned. "
-            "Confirm distributions from company records if this is an income holding."
-        )
-    event_types = sorted({item.event_type for item in market_context.news})
-    if event_types:
-        assessment_lines.append(
-            "- **Recent headline categories found:** " + ", ".join(event_types) + ". "
-            "The headlines below are search results, not verification that a material "
-            "event occurred."
-        )
-    else:
-        assessment_lines.append(
-            "- **Recent news:** no issuer-matched headlines were returned; this does "
-            "not establish that there are no material developments."
-        )
-    st.markdown("\n".join(assessment_lines))
-    st.markdown(
-        "**Review questions:** Has the original investment thesis changed? Are any "
-        "earnings, regulatory, competitive, or M&A developments material to future "
-        "cash flows? For dividend holdings, is the distribution supported by cash "
-        "flow and balance-sheet capacity? Your usual one-year horizon is a preference, "
-        "not proof that a loss will recover."
-    )
 
     st.markdown("#### Market context (Yahoo Finance)")
     market_columns = st.columns(4)
