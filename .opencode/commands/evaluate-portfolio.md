@@ -22,7 +22,15 @@ Run a complete portfolio review by invoking the existing commands in order: `/up
 
 6. Invoke `/recommend-positions` only after `/update-prices` has completed. If it reports missing price coverage or unconverted cash, do not present partial-sell recommendations; report the coverage issue and request corrected mappings/provider data followed by `/update-prices`. For eligible candidates, report current and target weight, estimated quantity and EUR proceeds, price date, and whether the limit is the default or security-specific. These are concentration-control suggestions, not trading instructions.
 
-7. State the portfolio's priced value and data freshness, then clearly separate:
+7. Only after all evaluation steps finish successfully, record the completion time in the selected portfolio database using UTC:
+
+   ```bash
+   .venv/bin/python scripts/record_evaluation.py
+   ```
+
+   This creates or updates the database's singleton evaluation timestamp. If the dashboard is configured to use a non-default database, pass it with `--database <path>`. Never update the timestamp for a partial run or a run stopped by an error.
+
+8. State the portfolio's priced value and data freshness, then clearly separate:
    - broker-reported loss review flags;
    - price/news context and analysis;
    - concentration trim estimates;
