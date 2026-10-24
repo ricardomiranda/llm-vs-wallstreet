@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 from contextlib import closing
+from datetime import datetime, timedelta, timezone
 import hashlib
 from pathlib import Path
 from typing import TypeAlias
@@ -24,6 +25,22 @@ from update_prices import PRICE_SCHEMA
 
 Row: TypeAlias = dict[str, str | int | float | None]
 RISK_BUDGET_PERCENT = 15.0
+EVALUATION_REMINDER_INTERVAL = timedelta(hours=24)
+URGENCY_CELL_STYLES = {
+    0: "background-color: #e2f0d9; color: #202124",
+    1: "background-color: #fff2cc; color: #202124",
+    2: "background-color: #fce4d6; color: #202124",
+    3: "background-color: #f4b183; color: #202124",
+    4: "background-color: #e06666; color: #ffffff",
+    5: "background-color: #c00000; color: #ffffff",
+}
+
+
+def urgency_background_style(value: object) -> str:
+    """Return a severity color for one loss-review urgency cell."""
+    if isinstance(value, int):
+        return URGENCY_CELL_STYLES.get(value, "")
+    return ""
 
 
 st.set_page_config(
@@ -38,6 +55,41 @@ def connect_readonly(database: Path) -> sqlite3.Connection:
     """Open an existing portfolio database without allowing writes."""
     encoded_path = quote(str(database.resolve()), safe="/:")
     return sqlite3.connect(f"file:{encoded_path}?mode=ro", uri=True)
+
+
+def load_last_evaluation(database: Path) -> datetime | None:
+    """Read the last successful portfolio evaluation time, if recorded."""
+    with closing(connect_readonly(database)) as connection:
+        table_exists = connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' "
+            "AND name='portfolio_evaluation_status'"
+        ).fetchone()
+        if table_exists is None:
+            return None
+        row = connection.execute(
+            "SELECT completed_at FROM portfolio_evaluation_status "
+            "WHERE singleton_id = 1"
+        ).fetchone()
+    if row is None or not isinstance(row[0], str):
+        return None
+    try:
+        completed_at = datetime.fromisoformat(row[0])
+    except ValueError:
+        return None
+    if completed_at.tzinfo is None:
+        completed_at = completed_at.replace(tzinfo=timezone.utc)
+    return completed_at.astimezone(timezone.utc)
+
+
+def evaluation_reminder_due(
+    last_evaluation: datetime | None, now: datetime | None = None
+) -> bool:
+    """Return whether no evaluation exists or its age exceeds 24 hours."""
+    if last_evaluation is None:
+        return True
+    current_time = now or datetime.now(timezone.utc)
+    return current_time.astimezone(timezone.utc) - last_evaluation > \
+        EVALUATION_REMINDER_INTERVAL
 
 
 def risk_widget_key(database: Path, security_id: str) -> str:
@@ -613,6 +665,20 @@ def main() -> None:
         st.info("No snapshots found. Run `scripts/import_portfolio.py` to get started.")
         return
 
+    last_evaluation = load_last_evaluation(database)
+    if evaluation_reminder_due(last_evaluation):
+        if last_evaluation is None:
+            reminder_detail = "No completed portfolio evaluation is recorded yet."
+        else:
+            reminder_detail = (
+                "Your last portfolio evaluation was more than 24 hours ago "
+                f"({last_evaluation.astimezone().strftime('%Y-%m-%d %H:%M %Z')})."
+            )
+        st.warning(
+            f"{reminder_detail} "
+            "Run `/evaluate-portfolio` to refresh your review and recommendations."
+        )
+
     security_count = len(holdings)
     priced_count_value = summary.get("priced_security_count", 0)
     unpriced_count_value = summary.get("unpriced_security_count", security_count)
@@ -967,7 +1033,10 @@ def main() -> None:
                 )
             ]
             st.dataframe(
-                pd.DataFrame(loss_rows),
+                pd.DataFrame(loss_rows).style.map(
+                    urgency_background_style,
+                    subset=["Urgency (0–5)"],
+                ),
                 width="stretch",
                 hide_index=True,
                 column_config={
