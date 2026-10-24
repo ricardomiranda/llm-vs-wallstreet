@@ -92,6 +92,12 @@ def parse_research_note(payload: object) -> SecurityResearchNote:
         position_value_eur=(
             float(position_value_raw) if position_value_raw is not None else None
         ),
+        recommendation_impact=(
+            str(payload["recommendation_impact"]).strip()
+            if isinstance(payload.get("recommendation_impact"), str)
+            and str(payload["recommendation_impact"]).strip()
+            else None
+        ),
     )
 
 

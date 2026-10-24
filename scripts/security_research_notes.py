@@ -34,6 +34,7 @@ class SecurityResearchNote:
     urgency_score: int | None = None
     position_value_eur: float | None = None
     researched_at: str | None = None
+    recommendation_impact: str | None = None
 
 
 def _create_research_table(connection: sqlite3.Connection) -> None:
@@ -52,9 +53,19 @@ def _create_research_table(connection: sqlite3.Connection) -> None:
                summary TEXT NOT NULL,
                findings_json TEXT NOT NULL,
                limitations_json TEXT NOT NULL,
-               sources_json TEXT NOT NULL
+               sources_json TEXT NOT NULL,
+               recommendation_impact TEXT
            )"""
     )
+    columns = {
+        str(row[1]) for row in connection.execute(
+            "PRAGMA table_info(issuer_research_notes)"
+        )
+    }
+    if "recommendation_impact" not in columns:
+        connection.execute(
+            "ALTER TABLE issuer_research_notes ADD COLUMN recommendation_impact TEXT"
+        )
     connection.execute(
         """CREATE INDEX IF NOT EXISTS issuer_research_notes_security_date
            ON issuer_research_notes(security_id, researched_at DESC, id DESC)"""
@@ -94,8 +105,8 @@ def save_security_research_note(
             """INSERT INTO issuer_research_notes(
                    security_id, symbol, description, researched_at, urgency_score,
                    position_value_eur, summary, findings_json, limitations_json,
-                   sources_json
-               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   sources_json, recommendation_impact
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 note.security_id,
                 note.symbol,
@@ -119,6 +130,7 @@ def save_security_research_note(
                     ],
                     ensure_ascii=False,
                 ),
+                note.recommendation_impact,
             ),
         )
     return researched_at
@@ -137,10 +149,20 @@ def load_security_research_notes(
         ).fetchone()
         if table_exists is None:
             return []
+        columns = {
+            str(row[1])
+            for row in connection.execute(
+                "PRAGMA table_info(issuer_research_notes)"
+            )
+        }
+        impact_column = (
+            "recommendation_impact"
+            if "recommendation_impact" in columns else "NULL"
+        )
         rows = connection.execute(
-            """SELECT security_id, symbol, description, researched_at,
+            f"""SELECT security_id, symbol, description, researched_at,
                       urgency_score, position_value_eur, summary, findings_json,
-                      limitations_json, sources_json
+                      limitations_json, sources_json, {impact_column}
                FROM issuer_research_notes
                WHERE security_id = ?
                ORDER BY researched_at DESC, id DESC
@@ -178,6 +200,9 @@ def load_security_research_notes(
                 findings=[str(item) for item in json.loads(row[7])],
                 limitations=[str(item) for item in json.loads(row[8])],
                 sources=sources,
+                recommendation_impact=(
+                    str(row[10]) if row[10] is not None else None
+                ),
             )
         )
     return notes
