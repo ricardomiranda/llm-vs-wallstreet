@@ -60,6 +60,54 @@ def filter_loss_reviews_by_position_value(
     return visible_reviews
 
 
+def security_report_options(
+    holdings: list[Row], search_text: str
+) -> dict[str, Row]:
+    """Search holdings by description, symbol, or ID and sort by description."""
+    normalized_query = search_text.casefold().strip()
+    matching_holdings = [
+        holding
+        for holding in holdings
+        if normalized_query in " ".join(
+            str(holding.get(field) or "")
+            for field in ("description", "symbol", "security_id")
+        ).casefold()
+    ]
+    matching_holdings.sort(
+        key=lambda holding: (
+            str(holding.get("description") or "").casefold(),
+            str(holding.get("symbol") or "").casefold(),
+            str(holding.get("security_id") or "").casefold(),
+        )
+    )
+    return {
+        f"{row['description']} — {row['symbol']} ({row['security_id']})": row
+        for row in matching_holdings
+    }
+
+
+def auto_selected_security_report(
+    report_options: dict[str, Row], search_text: str
+) -> Row | None:
+    """Choose an unambiguous exact symbol/ID or sole text-search result."""
+    normalized_query = search_text.casefold().strip()
+    if not normalized_query:
+        return None
+    exact_matches = [
+        holding
+        for holding in report_options.values()
+        if normalized_query in {
+            str(holding.get("symbol") or "").casefold(),
+            str(holding.get("security_id") or "").casefold(),
+        }
+    ]
+    if len(exact_matches) == 1:
+        return exact_matches[0]
+    if not exact_matches and len(report_options) == 1:
+        return next(iter(report_options.values()))
+    return None
+
+
 st.set_page_config(
     page_title="Portfolio Desk",
     page_icon="📈",
@@ -1121,18 +1169,28 @@ def main() -> None:
             )
 
         st.subheader("Individual security report")
-        report_options = {
-            f"{row['symbol']} — {row['description']} ({row['security_id']})": row
-            for row in holdings
-        }
-        selected_report_label = st.selectbox(
-            "Choose a security",
-            options=["Select a security", *report_options],
-            key="individual_security_report",
+        report_search = st.text_input(
+            "Search description, symbol, or security ID",
+            key="individual_security_report_search",
         )
-        if selected_report_label != "Select a security":
-            selected_holding = report_options[selected_report_label]
-            render_security_report(selected_holding, database, loss_threshold)
+        report_options = security_report_options(holdings, report_search)
+        if report_options:
+            auto_selected = auto_selected_security_report(
+                report_options, report_search
+            )
+            if auto_selected is not None:
+                render_security_report(auto_selected, database, loss_threshold)
+            else:
+                selected_report_label = st.selectbox(
+                    "Choose a security (sorted by description)",
+                    options=["Select a security", *report_options],
+                    key="individual_security_report",
+                )
+                if selected_report_label != "Select a security":
+                    selected_holding = report_options[selected_report_label]
+                    render_security_report(selected_holding, database, loss_threshold)
+        else:
+            st.info("No securities match that search. Try a description, symbol, or ID.")
 
         st.subheader("Concentration review")
         st.subheader("Rule-based review flags")
