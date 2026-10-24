@@ -665,7 +665,7 @@ def main() -> None:
             if priced_holdings:
                 chart_rows = [
                     {
-                        "Security": str(row["symbol"]),
+                        "Security": str(row["description"]),
                         "EUR value": float(row["position_value_eur"] or 0),
                     }
                     for row in reversed(priced_holdings)
