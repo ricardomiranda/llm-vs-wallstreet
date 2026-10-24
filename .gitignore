@@ -217,5 +217,9 @@ __marimo__/
 # Locally generated portfolio data (derived from personal brokerage statements)
 output/*.sqlite3
 
+# Personal brokerage statements
+references/*.degiro.xlsx
+references/*.interactive-brokers.csv
+
 # Streamlit
 .streamlit/secrets.toml
