@@ -620,13 +620,14 @@ def render_security_report(
 
     st.markdown("#### Saved research history")
     if saved_research:
-        for note in saved_research:
+        for note_index, note in enumerate(saved_research):
             urgency_label = (
                 f" · urgency {note.urgency_score}/5"
                 if note.urgency_score is not None else ""
             )
             with st.expander(
-                f"{note.researched_at or 'Date unavailable'}{urgency_label}"
+                f"{note.researched_at or 'Date unavailable'}{urgency_label} "
+                f"· review {note_index + 1}"
             ):
                 st.write(note.summary)
                 if note.position_value_eur is not None:
@@ -644,7 +645,7 @@ def render_security_report(
                         st.markdown(f"- {limitation}")
                 if note.sources:
                     st.markdown("**Sources consulted**")
-                    for source in note.sources:
+                    for source_index, source in enumerate(note.sources):
                         source_date = source.published_at or "date unavailable"
                         read_status = (
                             "full text read" if source.full_text_read
@@ -656,6 +657,7 @@ def render_security_report(
                             source.url,
                             key=(
                                 f"saved-research-{security_id}-"
+                                f"{note_index}-{source_index}-"
                                 f"{note.researched_at}-{source.url}"
                             ),
                         )
