@@ -72,4 +72,5 @@ REVIEWED_YAHOO_SYMBOLS: dict[str, str] = {
     "US9581021055": "WDC",  # Western Digital, Nasdaq, USD
     "IE00BDVPNG13": "WTAI.L",  # WisdomTree Artificial Intelligence ETF, London
     "IE00BGV5VN51": "XAID.L",  # Xtrackers Artificial Intelligence ETF, London
+    "IL0006290147": "TEVA",  # Teva Pharmaceutical Industries, NYSE, USD
 }
