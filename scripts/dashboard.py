@@ -158,6 +158,12 @@ def evaluation_reminder_due(
         EVALUATION_REMINDER_INTERVAL
 
 
+def buy_review_reminder_due(now: datetime | None = None) -> bool:
+    """Return whether the current local date is the first day of a month."""
+    current_date = (now or datetime.now().astimezone()).date()
+    return current_date.day == 1
+
+
 def risk_widget_key(database: Path, security_id: str) -> str:
     """Build a Streamlit state key scoped to the selected database."""
     path_digest = hashlib.sha256(str(database.resolve()).encode()).hexdigest()[:12]
@@ -888,6 +894,11 @@ def main() -> None:
         st.warning(
             f"{reminder_detail} "
             "Run `/evaluate-portfolio` to refresh your review and recommendations."
+        )
+    if buy_review_reminder_due():
+        st.info(
+            "Monthly portfolio buy-plan review is due. Run `/recommend-buys` "
+            "after refreshing prices to review contribution-funded target balancing."
         )
 
     security_count = len(holdings)
