@@ -216,6 +216,7 @@ __marimo__/
 
 # Locally generated portfolio data (derived from personal brokerage statements)
 output/*.sqlite3
+output/*_buy_plan.json
 
 # Personal brokerage statements
 references/*.degiro.xlsx
