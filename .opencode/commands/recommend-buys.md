@@ -50,3 +50,60 @@ Show progress as a contribution-led scenario, not a promise: estimate how the pl
 6. Saved research history used and any unresolved information.
 
 State that these are estimates, not trading instructions; no orders are placed. Never alter database contents as part of this command.
+
+## Save the plan for the dashboard
+
+After presenting the completed plan, save a local JSON copy next to the selected database, named `<database-stem>_buy_plan.json` (for the default database, `output/portfolio_buy_plan.json`). Do not write into or modify the portfolio database. Use this versioned structure so the dashboard can render the saved results:
+
+```json
+{
+  "schema_version": 1,
+  "prepared_at": "ISO-8601 timestamp",
+  "summary": "Brief description of the plan and data freshness.",
+  "budget": {
+    "monthly_amount": 500,
+    "currency": "EUR",
+    "available_cash_eur": 1000,
+    "first_date": "YYYY-MM-DD"
+  },
+  "roles": [
+    {
+      "role": "Broad diversified market funds",
+      "current_weight_pct": 45,
+      "target_weight_pct": 55,
+      "gap_pct": 10,
+      "confirmed_value_eur": 4500
+    }
+  ],
+  "candidates": [
+    {
+      "symbol": "FUND",
+      "description": "Fund name",
+      "role": "Broad diversified market funds",
+      "proposed_monthly_eur": 100,
+      "estimated_quantity": 1.25,
+      "current_weight_pct": 4,
+      "security_cap_pct": 10,
+      "source_price": 80,
+      "source_currency": "EUR",
+      "price_eur": 80,
+      "price_date": "YYYY-MM-DD",
+      "fx_date": "YYYY-MM-DD",
+      "rationale": "Evidence-based fit and valuation context.",
+      "risks": "Material risks and limitations.",
+      "sources": [
+        {
+          "publisher": "Fund provider",
+          "title": "Source title",
+          "published_at": "YYYY-MM-DD",
+          "url": "https://example.com/source"
+        }
+      ]
+    }
+  ],
+  "assumptions": ["Static prices; fees and taxes excluded."],
+  "next_review": "Refresh prices before the next monthly contribution."
+}
+```
+
+Only save plans after the user has confirmed the classifications, budget, and material constraints. Preserve the rationale, cited source details, prices and their dates, and limitations. Saving or displaying a plan must not be described as placing or scheduling an order.

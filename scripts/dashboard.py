@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+import json
 from contextlib import closing
 from datetime import datetime, timedelta, timezone
 import hashlib
@@ -121,6 +122,173 @@ def connect_readonly(database: Path) -> sqlite3.Connection:
     """Open an existing portfolio database without allowing writes."""
     encoded_path = quote(str(database.resolve()), safe="/:")
     return sqlite3.connect(f"file:{encoded_path}?mode=ro", uri=True)
+
+
+def buy_plan_path(database: Path) -> Path:
+    """Return the local sidecar path used to persist a contribution-funded plan."""
+    return database.with_name(f"{database.stem}_buy_plan.json")
+
+
+def load_buy_plan(database: Path) -> dict[str, object] | None:
+    """Load a validated saved buy plan, if one exists beside the database."""
+    plan_path = buy_plan_path(database)
+    if not plan_path.is_file():
+        return None
+    try:
+        payload = json.loads(plan_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"Could not read saved buy plan: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError("Saved buy plan must be a JSON object")
+    if payload.get("schema_version") != 1:
+        raise ValueError("Saved buy plan has an unsupported schema version")
+    if not isinstance(payload.get("summary"), str):
+        raise ValueError("Saved buy plan is missing its summary")
+    for field in ("roles", "candidates", "assumptions"):
+        value = payload.get(field, [])
+        item_type = str if field == "assumptions" else dict
+        if not isinstance(value, list) or any(
+            not isinstance(item, item_type) for item in value
+        ):
+            raise ValueError(f"Saved buy plan field '{field}' has an invalid format")
+    return payload
+
+
+def render_buy_plan(database: Path) -> None:
+    """Render the most recently saved contribution-funded buy plan."""
+    st.subheader("Contribution-funded buy plan")
+    st.caption(
+        "Saved estimates from `/recommend-buys`; informational only. No orders are placed."
+    )
+    try:
+        plan = load_buy_plan(database)
+    except ValueError as exc:
+        st.error(str(exc))
+        return
+    if plan is None:
+        st.info(
+            "No buy plan has been saved for this database. Run `/recommend-buys` "
+            "and save the completed plan to `"
+            f"{buy_plan_path(database).name}` to view it here."
+        )
+        return
+
+    st.write(str(plan["summary"]))
+    prepared_at = plan.get("prepared_at")
+    if isinstance(prepared_at, str) and prepared_at:
+        st.caption(f"Plan prepared: {prepared_at}")
+
+    budget = plan.get("budget")
+    if isinstance(budget, dict):
+        budget_columns = st.columns(3)
+        monthly_amount = budget.get("monthly_amount")
+        currency = budget.get("currency")
+        budget_columns[0].metric(
+            "Monthly contribution",
+            f"{format_number(monthly_amount)} {currency or ''}".strip()
+            if isinstance(monthly_amount, (int, float)) else "—",
+        )
+        budget_columns[1].metric(
+            "Cash confirmed available",
+            format_eur(budget.get("available_cash_eur")),
+        )
+        budget_columns[2].metric(
+            "First contribution",
+            str(budget.get("first_date") or "—"),
+        )
+
+    roles = plan.get("roles", [])
+    if isinstance(roles, list) and roles:
+        st.markdown("#### Confirmed role targets")
+        role_rows = [
+            {
+                "Role": role.get("role", "—"),
+                "Current weight (%)": role.get("current_weight_pct"),
+                "Target weight (%)": role.get("target_weight_pct"),
+                "Gap (percentage points)": role.get("gap_pct"),
+                "Confirmed value (EUR)": role.get("confirmed_value_eur"),
+            }
+            for role in roles if isinstance(role, dict)
+        ]
+        if role_rows:
+            st.dataframe(
+                pd.DataFrame(role_rows), width="stretch", hide_index=True,
+                column_config={
+                    "Current weight (%)": st.column_config.NumberColumn(format="%.2f%%"),
+                    "Target weight (%)": st.column_config.NumberColumn(format="%.2f%%"),
+                    "Gap (percentage points)": st.column_config.NumberColumn(format="%.2f"),
+                    "Confirmed value (EUR)": st.column_config.NumberColumn(format="€%.2f"),
+                },
+            )
+
+    candidates = plan.get("candidates", [])
+    if isinstance(candidates, list) and candidates:
+        st.markdown("#### Proposed staged allocations")
+        candidate_rows: list[dict[str, object]] = []
+        for candidate in candidates:
+            if not isinstance(candidate, dict):
+                continue
+            candidate_rows.append({
+                "Security": " — ".join(
+                    str(candidate.get(field)) for field in ("description", "symbol")
+                    if candidate.get(field)
+                ) or "—",
+                "Role": candidate.get("role", "—"),
+                "Monthly allocation (EUR)": candidate.get("proposed_monthly_eur"),
+                "Estimated quantity": candidate.get("estimated_quantity"),
+                "Current weight (%)": candidate.get("current_weight_pct"),
+                "Security cap (%)": candidate.get("security_cap_pct"),
+                "Source price": candidate.get("source_price"),
+                "Currency": candidate.get("source_currency", "—"),
+                "EUR price": candidate.get("price_eur"),
+                "Price date": candidate.get("price_date", "—"),
+                "FX date": candidate.get("fx_date", "—"),
+            })
+        if candidate_rows:
+            st.dataframe(
+                pd.DataFrame(candidate_rows), width="stretch", hide_index=True,
+                column_config={
+                    "Monthly allocation (EUR)": st.column_config.NumberColumn(format="€%.2f"),
+                    "Estimated quantity": st.column_config.NumberColumn(format="%.6g"),
+                    "Current weight (%)": st.column_config.NumberColumn(format="%.2f%%"),
+                    "Security cap (%)": st.column_config.NumberColumn(format="%.2f%%"),
+                    "EUR price": st.column_config.NumberColumn(format="€%.4f"),
+                },
+            )
+        for index, candidate in enumerate(candidates, start=1):
+            if not isinstance(candidate, dict):
+                continue
+            label = str(candidate.get("symbol") or candidate.get("description") or f"Candidate {index}")
+            with st.expander(f"{label}: rationale, risks & sources"):
+                st.markdown("**Rationale**")
+                st.write(candidate.get("rationale") or "Not recorded.")
+                st.markdown("**Risks and limitations**")
+                st.write(candidate.get("risks") or "Not recorded.")
+                sources = candidate.get("sources", [])
+                if isinstance(sources, list) and sources:
+                    st.markdown("**Sources**")
+                    for source in sources:
+                        if isinstance(source, dict):
+                            st.write(
+                                f"{source.get('publisher', 'Source')} — "
+                                f"{source.get('title', 'Untitled')} "
+                                f"({source.get('published_at') or 'date unavailable'})"
+                            )
+                            st.code(str(source.get("url", "")), language=None)
+
+    assumptions = plan.get("assumptions", [])
+    if isinstance(assumptions, list) and assumptions:
+        st.markdown("#### Assumptions and exclusions")
+        for assumption in assumptions:
+            st.markdown(f"- {assumption}")
+    next_review = plan.get("next_review")
+    if isinstance(next_review, str) and next_review:
+        st.info(f"Next review checkpoint: {next_review}")
+    st.warning(
+        "Estimates use the saved plan's prices and assumptions. Refresh prices and "
+        "review the recommendation before each contribution; prices, FX, fees, taxes, "
+        "and holdings can change. These are not trade instructions."
+    )
 
 
 def load_last_evaluation(database: Path) -> datetime | None:
@@ -935,8 +1103,8 @@ def main() -> None:
             "prices are delayed daily closes, not live quotes."
         )
 
-    overview_tab, holdings_tab, limits_tab, snapshots_tab = st.tabs(
-        ["Overview", "Holdings", "Limits & review", "Snapshots"]
+    overview_tab, holdings_tab, limits_tab, buy_plan_tab, snapshots_tab = st.tabs(
+        ["Overview", "Holdings", "Limits & review", "Buy plan", "Snapshots"]
     )
     with overview_tab:
         left, right = st.columns([1.5, 1])
@@ -1433,6 +1601,9 @@ def main() -> None:
             st.dataframe(pd.DataFrame(configured), width="stretch", hide_index=True)
         else:
             st.write("No security-specific limits configured. The default limit is 10%.")
+
+    with buy_plan_tab:
+        render_buy_plan(database)
 
     with snapshots_tab:
         st.subheader("Imported statement history")

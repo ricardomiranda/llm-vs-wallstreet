@@ -1,6 +1,6 @@
 # llm-vs-wallstreet
 
-version `0.22.0`.
+version `0.23.0`.
 
 This project helps me manage my securities portfolio. It works from real
 brokerage data and uses large language models to answer one question above
@@ -123,14 +123,16 @@ Launch the local Streamlit dashboard with:
 The dashboard reads `output/portfolio.sqlite3` locally and shows portfolio
 valuation and price coverage, largest positions, searchable holdings, missing
 prices, configured concentration limits, loss reviews, individual security
-reports, and snapshot history. Saving explicit risky-holding classifications
-writes those labels to the local database; no other dashboard action changes
-portfolio data. It does not upload portfolio data. Values use stored delayed
-daily prices and are not live quotes.
+reports, saved buy plans, and snapshot history. Saving explicit risky-holding
+classifications writes those labels to the local database; the saved buy plan is
+kept separately in `output/portfolio_buy_plan.json`. Both remain local and are
+not uploaded. Values use stored delayed daily prices and are not live quotes.
 
 On the first day of each month, the dashboard reminds you to run
 `/recommend-buys` for a contribution-funded target-balancing review. Refresh
-prices before using it for numeric estimates.
+prices before using it for numeric estimates. A completed plan saved in the
+database's adjacent `<database-stem>_buy_plan.json` file appears in the
+dashboard's **Buy plan** tab.
 
 Change the default cap in the local database with:
 
