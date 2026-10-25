@@ -919,14 +919,10 @@ def main() -> None:
     if unpriced_count:
         st.warning(
             f"{unpriced_count} holding(s) are missing a confirmed price. "
-            "They count as €0 toward recommendations, and weights are partial; "
+            "Their value is shown as €0, but concentration recommendations are "
+            "suppressed until price coverage is complete; "
             "prices are delayed daily closes, not live quotes."
         )
-        if unpriced_count / security_count < 0.02:
-            st.info(
-                f"Unpriced share is {100.0 * unpriced_count / security_count:.2f}% "
-                "(<2%); recommendation calculations proceed with these holdings valued at €0."
-            )
 
     overview_tab, holdings_tab, limits_tab, snapshots_tab = st.tabs(
         ["Overview", "Holdings", "Limits & review", "Snapshots"]
@@ -1342,15 +1338,14 @@ def main() -> None:
         st.subheader("Rule-based review flags")
         st.caption(
             "These are configurable concentration thresholds, not investment advice. "
-            "Unpriced holdings count as €0; recommendation alerts are suppressed "
-            "when 2% or more of current securities are unpriced."
+            "Recommendation alerts require complete current security-price coverage."
         )
         total_count = security_count
         unmapped_pct = 100.0 * unpriced_count / total_count if total_count else 100.0
-        if unpriced_count and unmapped_pct >= 2.0:
+        if unpriced_count:
             st.info(
                 f"{unpriced_count} of {total_count} securities ({unmapped_pct:.2f}%) "
-                "are unpriced. Recommendations require less than 2%."
+                "are unpriced. Concentration recommendations require complete price coverage."
             )
         else:
             with connect_readonly(database) as connection:
@@ -1373,7 +1368,7 @@ def main() -> None:
             if recommendations:
                 st.warning(
                     "Rule-based partial-sale estimates—not personalized investment "
-                    "advice or trade instructions. Unpriced holdings are valued at €0."
+                    "advice or trade instructions. Current security-price coverage is complete."
                 )
                 st.dataframe(
                     pd.DataFrame(recommendations),

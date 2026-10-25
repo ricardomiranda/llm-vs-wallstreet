@@ -47,13 +47,13 @@ def report_recommendations(database: Path) -> int:
             100.0 * int(unpriced_count) / int(total_security_count)
             if total_security_count else 100.0
         )
-        if unmapped_pct >= 2.0 or unconverted_cash_count:
+        if unpriced_count or unconverted_cash_count:
             print(
                 f"No sell recommendations generated: {unpriced_count} of "
                 f"{total_security_count} securities ({unmapped_pct:.2f}%) lack "
                 f"matched prices; {unconverted_cash_count} cash balance(s) "
-                "lack EUR conversion. Recommendations require fewer than 2% "
-                "unpriced securities and converted cash."
+                "lack EUR conversion. Recommendations require complete security "
+                "price and cash FX coverage."
             )
             return 0
         print(

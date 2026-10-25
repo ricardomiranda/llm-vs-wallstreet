@@ -30,6 +30,8 @@ Run a complete portfolio review by invoking the existing commands in order: `/up
 
 6. Invoke `/recommend-positions` only after `/update-prices` has completed. If it reports missing price coverage or unconverted cash, do not present partial-sell recommendations; report the coverage issue and request corrected mappings/provider data followed by `/update-prices`. For eligible candidates, report current and target weight, estimated quantity and EUR proceeds, price date, and whether the limit is the default or security-specific. These are concentration-control suggestions, not trading instructions.
 
+   Buying is a separate, contribution-funded workflow. Do not infer buy candidates from loss flags or concentration. If the user asks for a gradual target-balancing plan, invoke `/recommend-buys` after the data refresh and sell-limit review; follow its investor-intake, role-confirmation, full-price-coverage, and source-research requirements. Do not assume a contribution amount, target-role classification, or completion horizon.
+
 7. Only after all evaluation steps finish successfully, record the completion time in the selected portfolio database using UTC:
 
    ```bash
