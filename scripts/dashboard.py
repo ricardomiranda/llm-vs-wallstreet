@@ -550,8 +550,9 @@ def render_security_report(
             )
         second_paragraph = (
             f"{news_context} {recommendation_impact} {urgency_context} "
-            "The original investment thesis was not provided. What specific evidence "
-            "would make you exit, and is that evidence present now?"
+            "The original investment thesis was not provided, so this report does not "
+            "assume your reasons for holding or personal sell criteria. The saved "
+            "digest separates documented evidence from unresolved investor context."
         )
     else:
         if market_context is not None and market_context.news:
@@ -577,11 +578,17 @@ def render_security_report(
         )
         second_paragraph = (
             f"{news_context} {urgency_context} The original investment thesis was "
-            "not provided. What specific evidence would make you exit, and is that "
-            "evidence present now?"
+            "not provided, so this report does not assume your reasons for holding "
+            "or personal sell criteria. A thesis-based assessment remains open."
         )
     st.write(first_paragraph)
     st.write(second_paragraph)
+    if saved_research:
+        latest_research = saved_research[0]
+        st.markdown("#### Latest saved research digest")
+        if latest_research.researched_at:
+            st.caption(f"Saved {latest_research.researched_at}")
+        st.write(latest_research.summary)
     st.caption(
         f"Security ID: {security_id} · Broker(s): {holding['brokers']} · "
         f"Current quantity: {holding['quantity']}"
