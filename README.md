@@ -1,6 +1,6 @@
 # llm-vs-wallstreet
 
-version `0.21.1`.
+version `0.22.0`.
 
 This project helps me manage my securities portfolio. It works from real
 brokerage data and uses large language models to answer one question above
@@ -127,6 +127,10 @@ reports, and snapshot history. Saving explicit risky-holding classifications
 writes those labels to the local database; no other dashboard action changes
 portfolio data. It does not upload portfolio data. Values use stored delayed
 daily prices and are not live quotes.
+
+On the first day of each month, the dashboard reminds you to run
+`/recommend-buys` for a contribution-funded target-balancing review. Refresh
+prices before using it for numeric estimates.
 
 Change the default cap in the local database with:
 
