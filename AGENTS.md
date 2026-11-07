@@ -63,5 +63,10 @@ This project is **trunk-based**: `main` is the single trunk, it is always releas
 - Delete a branch once it is fully merged. Suggest deletion; never delete an unmerged branch, and never use `git branch -D`.
 - Merge through a pull request, never straight to `main` from a local branch.
 - Never force-push, never rewrite history, never discard uncommitted work, never update git config.
+- Every commit must reference one existing GitHub issue using `(#<issue-number>)` in its subject, for example `Fix price refresh handling (#42)`. Create an issue before starting work; split unrelated work across issues and commits.
+- Name branches with the issue number, for example `feat/42-price-refresh` or `fix/43-cash-fx`.
+- Every pull request must address one issue and include `Closes #<issue-number>` in its description. Keep the issue open until the PR is merged.
+- Track issues through the repository's GitHub Project board when it is available.
+- The `Sync project issue status` workflow needs the repository Actions secret `GH_PROJECT_TOKEN` with GitHub Projects read/write access for the project owner. Do not put the token in source files or commit it.
 
 Read `.opencode/commands/shared-git.md` before any branch, push, or cleanup work — it has the exact fast-forward, SSH-retry, and merged-branch cleanup procedure.

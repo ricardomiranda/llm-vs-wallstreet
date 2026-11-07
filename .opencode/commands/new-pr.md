@@ -16,6 +16,7 @@ Shared rules, SSH retry, fast-forward, and merged-branch cleanup: [shared-git.md
 - Do not open a PR from the default branch. Use `/commit-work` first if the work is still uncommitted.
 - Use `gh pr create` for all GitHub PR work. Do not invent a PR URL.
 - Base the PR on `<default-branch>`.
+- Every PR must correspond to one existing issue; include `Closes #<issue-number>` in the PR body. If the branch commits reference multiple issues, split the work before opening the PR.
 
 ## 1. Inspect
 
@@ -52,6 +53,8 @@ Read every commit and the full diff against the default branch. Draft:
 ```markdown
 ## Summary
 <1-3 bullet points>
+
+Closes #<issue-number>
 
 ## Test plan
 - [ ] <checklist of what to verify>

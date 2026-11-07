@@ -8,6 +8,9 @@ Used by `/commit-work`, `/sync-main`, and `/new-pr`. This repo is trunk-based: s
 - Never update git config or skip hooks.
 - Do not delete the default branch or any unmerged branch. Suggest deleting fully merged feature branches; delete them only after the user agrees. Never `git branch -D`.
 - Push with `git push -u origin HEAD` when a feature branch needs an upstream. Never force-push.
+- Every commit subject must end with an existing issue reference in the form `(#<issue-number>)`.
+- Create or identify one GitHub issue before implementing each change. Branch names should include that issue number, such as `feat/42-short-description`.
+- Every PR must be for one issue and include `Closes #<issue-number>` in the PR body. Do not mix unrelated issues in a commit or PR.
 
 ## Default branch
 
