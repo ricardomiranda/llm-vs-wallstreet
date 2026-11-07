@@ -12,6 +12,7 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
 from project_env import ensure_venv, repo_root
+from check_staged_files import find_forbidden_paths, staged_paths
 
 SKIP_PREFIXES: tuple[str, ...] = (".opencode/", ".venv/")
 PROJECT_PYTHON_PREFIXES: tuple[str, ...] = ("scripts/",)
@@ -53,6 +54,13 @@ def run_mypy(root: Path, python: Path) -> int:
 
 def main() -> int:
     root: Path = repo_root()
+    forbidden: list[str] = find_forbidden_paths(staged_paths(root))
+    if forbidden:
+        print("pre-commit: refusing to stage local data or secret files:", file=sys.stderr)
+        for path in forbidden:
+            print(f"  {path}", file=sys.stderr)
+        return 1
+
     staged: list[str] = staged_project_python(root)
     if not staged:
         print("pre-commit: skipping mypy (no project Python staged)")

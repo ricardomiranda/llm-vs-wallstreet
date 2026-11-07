@@ -7,9 +7,10 @@
   },
   "globs": [
     "README.md",
+    "SECURITY.md",
+    ".github/**/*.md",
     "AGENTS.md",
-    ".opencode/commands/**/*.md",
-    ".github/**/*.md"
+    ".opencode/commands/**/*.md"
   ],
   "ignores": [".venv/**", "output/**"]
 }
