@@ -1,0 +1,39 @@
+name: Python checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Python unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Provision project environment and dependencies
+        run: make deps
+      - name: Run unit tests
+        run: .venv/bin/python -m unittest discover -s tests
+
+  mypy:
+    name: Strict mypy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Provision project environment and dependencies
+        run: make deps
+      - name: Run strict mypy
+        run: .venv/bin/python -m mypy
