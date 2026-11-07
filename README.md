@@ -1,11 +1,30 @@
 # llm-vs-wallstreet
 
-version `0.25.0`.
+version `0.26.0`.
 
 This project helps me manage my securities portfolio. It works from real
 brokerage data and uses large language models to answer one question above
 all: should I sell? Wall Street analysts get paid to make that call; here a
 language model makes it for the cost of a subscription.
+
+## Quick sheet: see the latest recommendations
+
+1. In OpenCode, run **`/evaluate-portfolio`**. It refreshes imported positions
+   and delayed daily prices, reviews broker-reported losses, then checks
+   concentration limits and reports eligible partial-sell estimates. It does
+   not place orders.
+2. To view the refreshed data in the dashboard, run:
+
+   ```bash
+   .venv/bin/python -m streamlit run scripts/dashboard.py
+   ```
+
+   Prices are delayed, not live. If sell estimates are withheld because a
+   security has no confirmed price mapping or cash FX is missing, resolve the
+   coverage issue, run `/update-prices`, then `/recommend-positions` again.
+3. **Buy recommendations are separate.** Run **`/recommend-buys`** for a
+   contribution-funded target-balancing review; it is not part of
+   `/evaluate-portfolio`.
 
 ## The idea
 
