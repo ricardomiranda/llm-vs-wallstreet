@@ -12,7 +12,7 @@ from typing import Sequence
 from import_portfolio import DEFAULT_DATABASE
 
 
-DEFAULT_LOSS_THRESHOLD_PERCENT = 20.0
+DEFAULT_LOSS_THRESHOLD_PERCENT = 15.0
 
 
 @dataclass(frozen=True)

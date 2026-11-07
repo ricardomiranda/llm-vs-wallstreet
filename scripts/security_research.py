@@ -8,7 +8,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from typing import Any
 
@@ -21,6 +21,9 @@ STOP_WORDS = {
     "PLC", "HOLDINGS", "GROUP", "CLASS", "THE", "COMPANY", "CO",
     "INTERNATIONAL", "TECHNOLOGIES", "TECHNOLOGY", "INDUSTRIES",
 }
+ROLLING_PEAK_LOOKBACK_DAYS = 365
+ROLLING_PEAK_MINIMUM_COVERAGE_DAYS = 350
+ROLLING_PEAK_REVIEW_DRAWDOWN_PERCENT = -20.0
 
 
 @dataclass(frozen=True)
@@ -48,6 +51,12 @@ class MarketContext:
     year_low: float | None
     one_year_return_percent: float | None
     drawdown_from_year_high_percent: float | None
+    rolling_peak_price: float | None
+    rolling_peak_date: str | None
+    rolling_peak_drawdown_percent: float | None
+    rolling_peak_coverage_start: str | None
+    rolling_peak_coverage_end: str | None
+    rolling_peak_review_triggered: bool | None
     benchmark_symbol: str
     benchmark_one_year_return_percent: float | None
     market_cap: float | None
@@ -56,6 +65,58 @@ class MarketContext:
     news: tuple[NewsItem, ...]
     chart_error: str | None
     news_error: str | None
+
+
+@dataclass(frozen=True)
+class RollingPeakReview:
+    """Rolling peak drawdown and whether enough history supports its trigger."""
+
+    peak_price: float | None
+    peak_date: str | None
+    drawdown_percent: float | None
+    coverage_start: str | None
+    coverage_end: str | None
+    review_triggered: bool | None
+
+
+def calculate_rolling_peak_review(
+    observations: list[tuple[str, float]], today: date
+) -> RollingPeakReview:
+    """Assess the latest close against the highest close in a covered 12-month window."""
+    window_start = (today - timedelta(days=ROLLING_PEAK_LOOKBACK_DAYS)).isoformat()
+    window = sorted(
+        [
+            (observed_date, close)
+            for observed_date, close in observations
+            if window_start <= observed_date < today.isoformat() and close > 0
+        ],
+        key=lambda observation: observation[0],
+    )
+    if not window:
+        return RollingPeakReview(None, None, None, None, None, None)
+
+    latest_date, latest_close = window[-1]
+    peak_date, peak_price = max(window, key=lambda observation: observation[1])
+    drawdown = 100.0 * (latest_close / peak_price - 1.0)
+    coverage_start = window[0][0]
+    coverage_end = latest_date
+    coverage_days = (
+        date.fromisoformat(coverage_end)
+        - date.fromisoformat(coverage_start)
+    ).days
+    sufficiently_covered = coverage_days >= ROLLING_PEAK_MINIMUM_COVERAGE_DAYS
+    triggered = (
+        drawdown <= ROLLING_PEAK_REVIEW_DRAWDOWN_PERCENT + 1e-9
+        if sufficiently_covered else None
+    )
+    return RollingPeakReview(
+        peak_price,
+        peak_date,
+        drawdown,
+        coverage_start,
+        coverage_end,
+        triggered,
+    )
 
 
 def _get_json(url: str) -> dict[str, Any]:
@@ -115,7 +176,7 @@ def _load_chart_context(provider_symbol: str) -> tuple[
     dict[str, object], str | None
 ]:
     today = datetime.now(timezone.utc).date()
-    period_start = today - timedelta(days=370)
+    period_start = today - timedelta(days=ROLLING_PEAK_LOOKBACK_DAYS + 5)
     parameters = urllib.parse.urlencode(
         {
             "period1": int(datetime.combine(
@@ -146,7 +207,12 @@ def _load_chart_context(provider_symbol: str) -> tuple[
         for timestamp, close in zip(timestamps, closes, strict=False):
             parsed_date = _date_from_timestamp(timestamp)
             parsed_close = _number(close)
-            if parsed_date is not None and parsed_close is not None and parsed_close > 0:
+            if (
+                parsed_date is not None
+                and parsed_date < today.isoformat()
+                and parsed_close is not None
+                and parsed_close > 0
+            ):
                 observations.append((parsed_date, parsed_close))
     observations.sort(key=lambda observation: observation[0])
     prices = [observation[1] for observation in observations]
@@ -168,6 +234,7 @@ def _load_chart_context(provider_symbol: str) -> tuple[
         if len(one_year_observations) >= 2 and one_year_observations[0][1] > 0
         else None
     )
+    rolling_peak = calculate_rolling_peak_review(observations, today)
     dividend_yield = _number(metadata.get("dividendYield"))
     if dividend_yield is not None:
         dividend_yield *= 100.0
@@ -181,6 +248,12 @@ def _load_chart_context(provider_symbol: str) -> tuple[
         "year_low": year_low,
         "one_year_return_percent": one_year_return,
         "drawdown_from_year_high_percent": drawdown,
+        "rolling_peak_price": rolling_peak.peak_price,
+        "rolling_peak_date": rolling_peak.peak_date,
+        "rolling_peak_drawdown_percent": rolling_peak.drawdown_percent,
+        "rolling_peak_coverage_start": rolling_peak.coverage_start,
+        "rolling_peak_coverage_end": rolling_peak.coverage_end,
+        "rolling_peak_review_triggered": rolling_peak.review_triggered,
         "market_cap": _number(metadata.get("marketCap")),
         "dividend_yield_percent": dividend_yield,
         "trailing_annual_dividend_rate": _number(
@@ -291,6 +364,12 @@ def fetch_market_context(
     exchange = market_data.get("exchange")
     currency = market_data.get("currency")
     price_date = market_data.get("price_date")
+    rolling_peak_date = market_data.get("rolling_peak_date")
+    rolling_peak_coverage_start = market_data.get("rolling_peak_coverage_start")
+    rolling_peak_coverage_end = market_data.get("rolling_peak_coverage_end")
+    rolling_peak_review_triggered = market_data.get(
+        "rolling_peak_review_triggered"
+    )
     return MarketContext(
         provider_symbol=provider_symbol,
         issuer_name=issuer_name,
@@ -303,6 +382,24 @@ def fetch_market_context(
         one_year_return_percent=_number(market_data.get("one_year_return_percent")),
         drawdown_from_year_high_percent=_number(
             market_data.get("drawdown_from_year_high_percent")
+        ),
+        rolling_peak_price=_number(market_data.get("rolling_peak_price")),
+        rolling_peak_date=(rolling_peak_date if isinstance(rolling_peak_date, str) else None),
+        rolling_peak_drawdown_percent=_number(
+            market_data.get("rolling_peak_drawdown_percent")
+        ),
+        rolling_peak_coverage_start=(
+            rolling_peak_coverage_start
+            if isinstance(rolling_peak_coverage_start, str) else None
+        ),
+        rolling_peak_coverage_end=(
+            rolling_peak_coverage_end
+            if isinstance(rolling_peak_coverage_end, str) else None
+        ),
+        rolling_peak_review_triggered=(
+            rolling_peak_review_triggered
+            if isinstance(rolling_peak_review_triggered, bool)
+            else None
         ),
         benchmark_symbol="SPY",
         benchmark_one_year_return_percent=benchmark_return,

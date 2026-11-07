@@ -1,6 +1,6 @@
 # llm-vs-wallstreet
 
-version `0.24.0`.
+version `0.25.0`.
 
 This project helps me manage my securities portfolio. It works from real
 brokerage data and uses large language models to answer one question above
@@ -84,25 +84,27 @@ produces staged estimates only; it does not place orders or modify portfolio
 data.
 
 Use `/review-losses` or run `.venv/bin/python scripts/review_losses.py` to flag
-broker-reported unrealized losses for review. The default review threshold is
-20% of reported cost basis and can be changed with `--threshold-percent`.
-The threshold prompts a review; it is not an automatic sell signal. Review
-whether dividends and other income materially affect total return; statement
-P/L may omit dividend income. First-seen snapshot dates are context only and do
-not establish the purchase date or a one-year holding period. The usual
-one-year hold is a preference rather than an absolute rule if the investment
-thesis materially changes.
+broker-reported unrealized losses for review. The default cost-basis review
+threshold is 15% and can be changed with `--threshold-percent`. Separately,
+the individual security report checks for a 20% decline from the highest
+completed daily close in the trailing 12 months when at least 350 days of Yahoo
+chart history are available. Both are review prompts, not automatic sell
+signals or orders. Review whether dividends and other income materially affect
+total return; statement P/L may omit dividend income. First-seen snapshot dates
+are context only and do not establish the purchase date or holding period.
 
 The dashboard's **Limits & review** tab includes broker-reported loss flags and
-a 0–5 urgency score: 0 below the review threshold, 1 at the threshold, then
-one additional point for every 10 percentage points of loss, capped at 5. The
-score measures loss severity only and is not a sell recommendation.
+a 0–5 urgency score: 0 below the cost-basis review threshold, 1 at the
+threshold, then one additional point for every 10 percentage points of loss,
+capped at 5. The score measures loss severity only and is not a sell
+recommendation.
 
 The dashboard's on-demand **Individual security report** combines local
-position and loss context with Yahoo Finance 52-week price context and recent
-issuer-matched headlines when available, along with a one-year price-only return
-and a broad-market comparison. Headlines are best-effort and should be checked
-against company filings and primary sources. The risk-budget panel lets you
+position and loss context with Yahoo Finance 52-week and trailing-12-month
+rolling-peak price context, recent issuer-matched headlines when available, a
+one-year price-only return, and a broad-market comparison. Headlines are
+best-effort and should be checked against company filings and primary sources.
+The risk-budget panel lets you
 explicitly classify uncertain/speculative holdings, saves those choices to a
 local database table, and compares their share of portfolio value with your
 15% budget. Concentration-trim candidates and severe-loss flags are suggested
