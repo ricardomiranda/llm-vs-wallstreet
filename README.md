@@ -1,6 +1,6 @@
 # llm-vs-wallstreet
 
-version `0.26.0`.
+version `0.27.1`.
 
 This project helps me manage my securities portfolio. It works from real
 brokerage data and uses large language models to answer one question above
@@ -38,6 +38,20 @@ language model makes it for the cost of a subscription.
   points to overvalued securities.
 - **Explicit, dated calls.** Output artifacts record every recommendation
   so future runs can check it against what actually happened.
+
+## Contributing work
+
+Create a GitHub issue before starting each change. Use a short-lived branch
+named with its issue number (for example `feat/42-price-refresh`), and include
+that same issue in every commit subject (for example `Improve price refresh
+handling (#42)`). Keep unrelated issues in separate branches and commits.
+
+Open one pull request per issue and include `Closes #42` in its description;
+GitHub will close the issue when the PR merges. Track issue progress on the
+[Portfolio App Roadmap](https://github.com/users/ricardomiranda/projects/3)
+board using its **Workflow status** field (Backlog, Ready, In progress, In
+review, Done). Do not commit the local portfolio database or brokerage
+statement files.
 
 ## Data
 

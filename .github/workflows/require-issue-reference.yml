@@ -1,0 +1,47 @@
+name: Require issue reference
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+
+jobs:
+  issue-reference:
+    name: Validate linked issue
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require issue-closing keyword in pull request body
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          body=$(gh pr view "$PR_NUMBER" --repo "$GH_REPO" --json body --jq '.body // ""')
+          if ! [[ "$body" =~ (Closes|Fixes|Resolves)[[:space:]]+#[0-9]+ ]]; then
+            echo "Pull request body must include a closing reference such as 'Closes #42'." >&2
+            exit 1
+          fi
+          issue_numbers=$(printf '%s' "$body" | grep -Eo '(Closes|Fixes|Resolves)[[:space:]]+#[0-9]+' | grep -Eo '#[0-9]+' | tr -d '#' | sort -u)
+          if [ -z "$issue_numbers" ] || [ "$(printf '%s\n' "$issue_numbers" | wc -l)" -ne 1 ]; then
+            echo "Each pull request must close exactly one issue." >&2
+            exit 1
+          fi
+          issue_number=$(printf '%s' "$issue_numbers")
+          gh issue view "$issue_number" --repo "$GH_REPO" --json number,state >/dev/null
+          subjects=$(gh pr view "$PR_NUMBER" --repo "$GH_REPO" --json commits --jq '.commits[].messageHeadline')
+          while IFS= read -r subject; do
+            if ! [[ "$subject" =~ \(\#([0-9]+)\)$ ]]; then
+              echo "Commit subject must end with an issue reference, for example 'Describe change (#$issue_number)'. Missing: $subject" >&2
+              exit 1
+            fi
+            if [ "${BASH_REMATCH[1]}" != "$issue_number" ]; then
+              echo "Commit subject references issue #${BASH_REMATCH[1]}, but this PR closes #$issue_number: $subject" >&2
+              exit 1
+            fi
+          done <<< "$subjects"
+          echo "Validated issue #$issue_number."

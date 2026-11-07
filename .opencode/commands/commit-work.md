@@ -13,6 +13,8 @@ Shared rules, SSH retry, fast-forward, and merged-branch cleanup: [shared-git.md
 
 ## Extra hard rules
 
+- Every commit must correspond to one existing GitHub issue. If there is no issue, create one with `gh issue create` before creating the feature branch.
+- Include the issue number in the branch name (`feat/42-short-description`) and each commit subject (`Describe the change (#42)`). Keep unrelated issues in separate commits/branches.
 - Stage only named files. No `git add .` / `git add -A`.
 - Do not commit secrets (`.env`, credentials, keys) or `.venv`.
 - Bump versions only with `.venv/bin/python scripts/bumpversion.py <part>`. Never call the `bumpversion` console script or `python -m bumpversion` directly, and never edit version numbers by hand.
@@ -46,6 +48,7 @@ For each slice:
 - **Reuse**: if HEAD is already that unmerged feature branch (or `$ARGUMENTS` names it) and the slice belongs there, stay on it.
 - **Semver**: `patch` (fixes, small wording), `minor` (new deliverable section or architecture decision), `major` (breaking).
 - **Commit message**: 1–2 sentences on why, matching this repo's style.
+- **Issue**: include the corresponding issue number in every commit subject as `(#<number>)`.
 
 If several new slices start from the same default-branch version, increment sequentially (`0.3.0` → `0.3.1`, then `0.3.2`) so version files do not collide.
 
@@ -83,6 +86,8 @@ EOF
 ```
 
 6. `git push -u origin HEAD`
+
+Each published branch's pull request must reference the same issue and use `Closes #<number>` so GitHub closes it on merge.
 
 After the last slice, drop the WIP stash only if every intended file was committed. Keep the backup ref. Do not hand-edit version strings.
 
