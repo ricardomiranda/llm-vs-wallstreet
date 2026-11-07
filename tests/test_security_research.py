@@ -4,8 +4,12 @@ from __future__ import annotations
 
 import unittest
 from datetime import date
+import sys
+from pathlib import Path
 
-from scripts.security_research import calculate_rolling_peak_review
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+
+from security_research import calculate_rolling_peak_review
 
 
 class RollingPeakReviewTests(unittest.TestCase):
