@@ -1,0 +1,31 @@
+name: Version increase
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  version-increase:
+    name: Require higher SemVer version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Create project virtual environment
+        run: python -m venv .venv
+      - name: Require a version greater than the base branch
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git fetch origin "${BASE_REF}:refs/remotes/origin/${BASE_REF}"
+          base_version="$(git show "origin/${BASE_REF}:version.txt")"
+          .venv/bin/python scripts/check_version.py "$base_version"
