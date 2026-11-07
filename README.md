@@ -1,6 +1,6 @@
 # llm-vs-wallstreet
 
-version `0.27.4`.
+version `0.28.0`.
 
 This project helps me manage my securities portfolio. It works from real
 brokerage data and uses large language models to answer one question above
@@ -52,6 +52,14 @@ GitHub will close the issue when the PR merges. Track issue progress on the
 board using its **Workflow status** field (Backlog, Ready, In progress, In
 review, Done). Do not commit the local portfolio database or brokerage
 statement files.
+
+Run the Markdown documentation check locally with:
+
+```bash
+npx --yes markdownlint-cli2@0.18.1
+```
+
+The same check runs automatically on pushes and pull requests.
 
 To enable automatic project status updates from pull requests, add a repository
 Actions secret named `GH_PROJECT_TOKEN` with GitHub Projects read/write access
