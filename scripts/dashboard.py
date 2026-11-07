@@ -930,6 +930,37 @@ def render_security_report(
         if market_context.dividend_yield_percent is not None else "Unavailable",
         help="Provider trailing estimate, not a promise or forecast of future dividends.",
     )
+    rolling_peak_columns = st.columns(3)
+    rolling_peak_columns[0].metric(
+        "12-month rolling peak",
+        f"{market_context.rolling_peak_price:,.4f} {market_context.currency}"
+        if market_context.rolling_peak_price is not None and market_context.currency
+        else "Unavailable",
+        help=f"Peak close date: {market_context.rolling_peak_date or 'unavailable'}.",
+    )
+    rolling_peak_columns[1].metric(
+        "Drawdown from rolling peak",
+        f"{market_context.rolling_peak_drawdown_percent:.1f}%"
+        if market_context.rolling_peak_drawdown_percent is not None else "Unavailable",
+        help=(
+            "Based on delayed daily closes. Coverage: "
+            f"{market_context.rolling_peak_coverage_start or 'unavailable'} through "
+            f"{market_context.rolling_peak_coverage_end or 'unavailable'}."
+        ),
+    )
+    peak_trigger = market_context.rolling_peak_review_triggered
+    rolling_peak_columns[2].metric(
+        "20% trailing review",
+        "TRIGGERED" if peak_trigger is True
+        else "Not triggered" if peak_trigger is False
+        else "Insufficient history",
+    )
+    if peak_trigger is True:
+        st.warning(
+            "The latest completed close is at least 20% below the highest close "
+            "in the covered 12-month window. This is a review prompt, not an "
+            "automatic sale or order."
+        )
     comparison_columns = st.columns(2)
     comparison_columns[0].metric(
         "Approx. 1-year price return",
@@ -1368,12 +1399,16 @@ def main() -> None:
 
         st.subheader("Loss review and urgency")
         loss_threshold = st.slider(
-            "Loss review threshold (%)",
+            "Broker cost-basis review threshold (%)",
             min_value=5.0,
             max_value=50.0,
             value=DEFAULT_LOSS_THRESHOLD_PERCENT,
             step=5.0,
-            help="A review trigger based on broker-reported unrealized loss and cost basis; not a sell rule.",
+            help=(
+                "A review trigger based on broker-reported unrealized loss and "
+                "cost basis. The separate 12-month rolling-peak trigger is 20%; "
+                "neither is a sell rule."
+            ),
         )
         with connect_readonly(database) as connection:
             loss_reviews, unavailable_losses = load_loss_reviews(
@@ -1472,7 +1507,7 @@ def main() -> None:
                 "are at or below the cutoff."
             )
         else:
-            st.success("No holdings cross the selected loss-review threshold.")
+            st.success("No holdings cross the selected broker cost-basis loss threshold.")
         if missing_value_count:
             st.info(
                 f"{missing_value_count} loss position(s) are hidden because no current "
