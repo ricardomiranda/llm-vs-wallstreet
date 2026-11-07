@@ -1,5 +1,11 @@
 # Project instructions
 
+## Clarifying uncertainty
+
+- Do not invent user preferences, financial inputs, facts, requirements, or acceptance criteria. Ask a concise clarifying question whenever an unknown could materially change the result, scope, data handling, investment analysis, or GitHub action.
+- State clearly when analysis uses an assumption, and do not proceed with irreversible or externally visible actions until the user confirms the material assumption.
+- For routine, reversible implementation details with an established project convention, proceed using that convention and report it.
+
 ## Python environment
 
 Every Python script in this project must run inside the project virtual environment `.venv/`.
