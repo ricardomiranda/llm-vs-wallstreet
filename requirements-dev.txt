@@ -2,6 +2,7 @@ bump2version
 markdown-it-py
 mypy
 PyYAML
+types-PyYAML
 pandas
 pandas-stubs
 streamlit
