@@ -1,6 +1,6 @@
 # llm-vs-wallstreet
 
-version `0.29.0`.
+version `0.30.0`.
 
 This project helps me manage my securities portfolio. It works from real
 brokerage data and uses large language models to answer one question above
@@ -50,8 +50,10 @@ Open one pull request per issue and include `Closes #42` in its description;
 GitHub will close the issue when the PR merges. Track issue progress on the
 [Portfolio App Roadmap](https://github.com/users/ricardomiranda/projects/3)
 board using its **Workflow status** field (Backlog, Ready, In progress, In
-review, Done). Do not commit the local portfolio database or brokerage
-statement files.
+review, Done). The roadmap and automatic status sync are maintainer-specific;
+the sync is skipped for pull requests from forks. Never commit brokerage
+exports, portfolio databases, generated buy plans, credentials, or other local
+portfolio data.
 
 Run the Markdown documentation check locally with:
 
@@ -59,29 +61,25 @@ Run the Markdown documentation check locally with:
 npx --yes markdownlint-cli2@0.18.1
 ```
 
-The same check runs automatically on pushes and pull requests.
+The same check runs automatically on pushes and pull requests. The local
+Node.js/npm toolchain is required to run it manually.
 
-To enable automatic project status updates from pull requests, add a repository
-Actions secret named `GH_PROJECT_TOKEN` with GitHub Projects read/write access
-for the `ricardomiranda` account. Draft PRs set the issue to **In progress**;
-ready-for-review/open PRs set it to **In review**; merged PRs set it to **Done**;
-closed, unmerged PRs return it to **In progress**.
+Automatic project status updates are optional maintainer automation for this
+repository's roadmap board. To enable them, configure a repository Actions
+secret named `GH_PROJECT_TOKEN` with the minimum GitHub Projects permissions
+needed for that board. The workflow skips the update when the secret is absent
+and does not run for fork pull requests.
 
 ## Data
 
-Brokerage statements live in `references/`:
-
-| File | Source | Content |
-| --- | --- | --- |
-| `20260417.degiro.xlsx` | DeGiro | Portfolio snapshot ("Carteira"): product, ticker/ISIN, quantity, price, value, value in EUR |
-| `20260515.interactive-brokers.csv` | Interactive Brokers (Ireland) | Activity statement, May 15 2026: account activity, positions, and statement fields in CSV form |
-
-Statements are personal financial records. Do not commit anything that adds
-identifying information beyond what is already tracked.
+Brokerage exports are private financial records. Supply your own supported
+exports locally in `references/`; never upload them to issues, pull requests,
+or the repository. The directory is ignored by Git except for its placeholder
+file.
 
 Timestamped DeGiro (`YYYYMMDD.degiro.xlsx`) and Interactive Brokers
 (`YYYYMMDD.interactive-brokers.csv`) statements can be imported into a local
-SQLite portfolio database:
+local SQLite portfolio database:
 
 ```bash
 .venv/bin/python scripts/import_portfolio.py
@@ -93,7 +91,7 @@ statements, validate supported files, and import them into the database.
 The importer stores a separate snapshot for each statement in
 `output/portfolio.sqlite3`; it preserves older statement dates and refreshes a
 snapshot if its source file is updated. The generated database is ignored by
-Git because it contains derived personal financial data. It records account
+Git because it contains private derived financial data. It records account
 totals, positions, cash balances, and available FX rates. Position-limit rules
 can be added to `position_limits`; `position_limit_alerts` exposes limit
 breaches for dashboard use. Statement dates come from the filename (and are
@@ -199,7 +197,7 @@ default.
 
 Early days. In place so far:
 
-- Two reference statements (DeGiro, Interactive Brokers)
+- Local import support for user-supplied brokerage statements
 - Python 3.12 environment provisioning and dependency management
 - Strict typing (`mypy --strict`) and a pre-commit gate
 - Semantic versioning wired through `version.txt`, this README, and
@@ -219,7 +217,7 @@ scripts/      project Python: env bootstrap, version bump, pre-commit gate
 Makefile      entry points: make venv, make check, make bump
 mypy.ini      strict type-checking configuration
 AGENTS.md     instructions for AI coding agents working in this repo
-.opencode/    opencode commands and vendored skills
+.opencode/    OpenCode command and agent instructions
 ```
 
 ## Getting started
@@ -257,4 +255,12 @@ requests, deleted once merged. No force-pushes, no history rewrites. The
 
 ## License
 
-TBD.
+This project's first-party code and documentation are licensed under the MIT
+License. See [LICENSE](LICENSE). Third-party materials retain their own license
+terms.
+
+## Security and private data
+
+Do not include broker exports, account identifiers, portfolio databases,
+generated plans, credentials, or other private financial data in issues or pull
+requests. See [SECURITY.md](SECURITY.md) for vulnerability reporting guidance.

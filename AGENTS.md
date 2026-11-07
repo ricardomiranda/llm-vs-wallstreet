@@ -73,6 +73,7 @@ This project is **trunk-based**: `main` is the single trunk, it is always releas
 - Name branches with the issue number, for example `feat/42-price-refresh` or `fix/43-cash-fx`.
 - Every pull request must address one issue and include `Closes #<issue-number>` in its description. Keep the issue open until the PR is merged.
 - Track issues through the repository's GitHub Project board when it is available.
-- The `Sync project issue status` workflow needs the repository Actions secret `GH_PROJECT_TOKEN` with GitHub Projects read/write access for the project owner. Do not put the token in source files or commit it.
+- The optional `Sync project issue status` workflow uses the repository Actions secret `GH_PROJECT_TOKEN` for maintainer project-board updates. It skips when the secret is absent and does not run for fork pull requests. Never put the token in source files or commit it.
+- Never commit brokerage exports, portfolio databases, generated buy plans, credentials, or other private financial data. The staged-file guard rejects these paths and common secret formats; do not bypass it with force-add.
 
 Read `.opencode/commands/shared-git.md` before any branch, push, or cleanup work — it has the exact fast-forward, SSH-retry, and merged-branch cleanup procedure.

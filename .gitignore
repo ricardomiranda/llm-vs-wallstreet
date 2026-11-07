@@ -215,12 +215,35 @@ marimo/_lsp/
 __marimo__/
 
 # Locally generated portfolio data (derived from personal brokerage statements)
-output/*.sqlite3
-output/*_buy_plan.json
+# Keep only directory placeholders in the repository. All user data and
+# generated output below these directories is local-only.
+references/**
+!references/.gitkeep
+output/**
+!output/.gitkeep
 
-# Personal brokerage statements
-references/*.degiro.xlsx
-references/*.interactive-brokers.csv
+# Local secrets and financial data
+.env
+.env.*
+!.env.example
+*.degiro.*
+*.interactive-brokers.*
+*.ibkr.*
+*.brokerage.*
+*_buy_plan.json
+*.sqlite
+*.sqlite3
+*.db
+*.pem
+*.p12
+*.pfx
+*.key
+*.crt
+id_rsa
+id_ed25519
+credentials.json
+*credentials*.json
+*token*.json
 
 # Streamlit
 .streamlit/secrets.toml

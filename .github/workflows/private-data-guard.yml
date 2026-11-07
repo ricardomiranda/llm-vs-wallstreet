@@ -1,0 +1,24 @@
+name: Private data guard
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tracked-paths:
+    name: Reject tracked local data and secrets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Create project virtual environment
+        run: python -m venv .venv
+      - name: Check tracked paths
+        run: .venv/bin/python scripts/check_staged_files.py --tracked
