@@ -1,6 +1,6 @@
 # llm-vs-wallstreet
 
-version `0.28.0`.
+version `0.28.1`.
 
 This project helps me manage my securities portfolio. It works from real
 brokerage data and uses large language models to answer one question above
@@ -212,7 +212,7 @@ artifacts each analysis run produces.
 
 ## Repository layout
 
-```
+```text
 references/   brokerage statements (input data)
 output/       artifacts produced by analysis runs
 scripts/      project Python: env bootstrap, version bump, pre-commit gate
