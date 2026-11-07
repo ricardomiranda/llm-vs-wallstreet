@@ -85,7 +85,7 @@ EOF
 )"
 ```
 
-6. `git push -u origin HEAD`
+1. `git push -u origin HEAD`
 
 Each published branch's pull request must reference the same issue and use `Closes #<number>` so GitHub closes it on merge.
 
