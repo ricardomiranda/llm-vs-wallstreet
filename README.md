@@ -1,6 +1,6 @@
 # llm-vs-wallstreet
 
-version `0.27.1`.
+version `0.27.2`.
 
 This project helps me manage my securities portfolio. It works from real
 brokerage data and uses large language models to answer one question above
@@ -52,6 +52,12 @@ GitHub will close the issue when the PR merges. Track issue progress on the
 board using its **Workflow status** field (Backlog, Ready, In progress, In
 review, Done). Do not commit the local portfolio database or brokerage
 statement files.
+
+To enable automatic project status updates from pull requests, add a repository
+Actions secret named `GH_PROJECT_TOKEN` with GitHub Projects read/write access
+for the `ricardomiranda` account. Draft PRs set the issue to **In progress**;
+ready-for-review/open PRs set it to **In review**; merged PRs set it to **Done**;
+closed, unmerged PRs return it to **In progress**.
 
 ## Data
 
