@@ -1,0 +1,24 @@
+name: Dependency audit
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-audit:
+    name: Audit Python dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install development requirements
+        run: make deps
+      - name: Audit development requirements
+        run: .venv/bin/pip-audit -r requirements-dev.txt

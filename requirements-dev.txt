@@ -1,6 +1,7 @@
 bump2version
 markdown-it-py
 mypy
+pip-audit
 PyYAML
 types-PyYAML
 pandas
