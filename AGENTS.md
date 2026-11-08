@@ -71,9 +71,9 @@ This project is **trunk-based**: `main` is the single trunk, it is always releas
 - Never force-push, never rewrite history, never discard uncommitted work, never update git config.
 - Every commit must reference one existing GitHub issue using `(#<issue-number>)` in its subject, for example `Fix price refresh handling (#42)`. Create an issue before starting work; split unrelated work across issues and commits.
 - Name branches with the issue number, for example `feat/42-price-refresh` or `fix/43-cash-fx`.
-- Every pull request must address one issue and include `Closes #<issue-number>` in its description. Keep the issue open until the PR is merged.
+- Every human-authored pull request must address one issue and include `Closes #<issue-number>` in its description. Dependabot PRs are exempt from the issue-reference and version-increase checks; they are tracked directly on the project board. Keep linked human issues open until merge.
 - Track issues through the repository's GitHub Project board when it is available.
-- The optional `Sync project issue status` workflow uses the repository Actions secret `GH_PROJECT_TOKEN` for maintainer project-board updates. It skips when the secret is absent and does not run for fork pull requests. Never put the token in source files or commit it.
+- The optional project-board workflows use the repository Actions secret `GH_PROJECT_TOKEN` for maintainer updates. They skip when the secret is absent; the issue sync does not run for fork PRs, and Dependabot PR sync uses `pull_request_target` without checking out or executing PR code. Never put the token in source files or commit it.
 - Never commit brokerage exports, portfolio databases, generated buy plans, credentials, or other private financial data. The staged-file guard rejects these paths and common secret formats; do not bypass it with force-add.
 
 Read `.opencode/commands/shared-git.md` before any branch, push, or cleanup work — it has the exact fast-forward, SSH-retry, and merged-branch cleanup procedure.
