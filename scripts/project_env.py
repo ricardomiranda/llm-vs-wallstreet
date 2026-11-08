@@ -8,7 +8,7 @@ import venv
 from pathlib import Path
 
 REQUIRED_MODULES: tuple[str, ...] = (
-    "bumpversion", "mypy", "pandas", "streamlit", "yaml"
+    "bumpversion", "coverage", "mypy", "pandas", "streamlit", "yaml"
 )
 
 

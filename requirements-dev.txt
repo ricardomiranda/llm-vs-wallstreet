@@ -1,4 +1,5 @@
 bump2version
+coverage
 markdown-it-py
 mypy
 pip-audit

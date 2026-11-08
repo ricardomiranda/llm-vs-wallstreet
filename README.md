@@ -1,6 +1,6 @@
 # llm-vs-wallstreet
 
-version `0.38.2`.
+version `0.39.0`.
 
 This project helps me manage my securities portfolio. It works from real
 brokerage data and uses large language models to answer one question above
@@ -234,6 +234,16 @@ make check   # mypy --strict + pre-commit gate
 
 All project Python runs inside `.venv/` — either through the `Makefile` or
 via `.venv/bin/python` directly. The venv is disposable and git-ignored.
+
+Run the unit tests with coverage locally:
+
+```bash
+.venv/bin/python -m coverage run --source=scripts -m unittest discover -s tests
+.venv/bin/python -m coverage report --fail-under=90
+```
+
+Coverage includes all Python modules under `scripts/`; CI enforces at least
+90% total coverage on pushes and pull requests.
 
 ## Versioning
 
