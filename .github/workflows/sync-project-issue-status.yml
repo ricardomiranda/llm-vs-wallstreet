@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set project status from pull request lifecycle
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           GH_PROJECT_TOKEN: ${{ secrets.GH_PROJECT_TOKEN }}
         with:
