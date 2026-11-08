@@ -1,0 +1,38 @@
+name: GitHub Actions lint
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+  attestations: read
+
+jobs:
+  actionlint:
+    name: Lint GitHub Actions workflows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Download pinned actionlint release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/actionlint"
+          gh release download v1.7.12 \
+            --repo rhysd/actionlint \
+            --pattern 'actionlint_1.7.12_linux_amd64.tar.gz' \
+            --dir "$RUNNER_TEMP/actionlint"
+      - name: Verify actionlint release attestation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh attestation verify \
+            "$RUNNER_TEMP/actionlint/actionlint_1.7.12_linux_amd64.tar.gz" \
+            --repo rhysd/actionlint
+      - name: Extract and lint workflows
+        run: |
+          tar -xzf "$RUNNER_TEMP/actionlint/actionlint_1.7.12_linux_amd64.tar.gz" \
+            -C "$RUNNER_TEMP/actionlint" actionlint
+          "$RUNNER_TEMP/actionlint/actionlint" -color
