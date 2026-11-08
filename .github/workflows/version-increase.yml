@@ -10,6 +10,7 @@ permissions:
 jobs:
   version-increase:
     name: Require higher SemVer version
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository

@@ -12,6 +12,7 @@ permissions:
 jobs:
   issue-reference:
     name: Validate linked issue
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Require issue-closing keyword in pull request body

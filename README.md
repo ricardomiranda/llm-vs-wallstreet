@@ -1,6 +1,6 @@
 # llm-vs-wallstreet
 
-version `0.35.0`.
+version `0.36.0`.
 
 This project helps me manage my securities portfolio. It works from real
 brokerage data and uses large language models to answer one question above
@@ -51,7 +51,9 @@ GitHub will close the issue when the PR merges. Track issue progress on the
 [Portfolio App Roadmap](https://github.com/users/ricardomiranda/projects/3)
 board using its **Workflow status** field (Backlog, Ready, In progress, In
 review, Done). The roadmap and automatic status sync are maintainer-specific;
-the sync is skipped for pull requests from forks. Never commit brokerage
+the issue sync is skipped for pull requests from forks. Dependabot update PRs
+are exempt from the issue-reference and version-increase checks and are added
+to the board directly when maintainer project automation is configured. Never commit brokerage
 exports, portfolio databases, generated buy plans, credentials, or other local
 portfolio data.
 
